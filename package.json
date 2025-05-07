@@ -1,0 +1,10 @@
+{
+  "name": "my-electron-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "dependencies": {
+    "@material/web": "^2.3.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "rollup": "^4.40.2"
+  }
+}
