@@ -22,6 +22,16 @@
     lit "^2.8.0 || ^3.0.0"
     tslib "^2.4.0"
 
+"@oven/bun-windows-x64-baseline@1.2.12":
+  version "1.2.12"
+  resolved "https://registry.npmjs.org/@oven/bun-windows-x64-baseline/-/bun-windows-x64-baseline-1.2.12.tgz"
+  integrity sha512-8wwIRhQPibE9nGhZdy8MW8ueCCs/VLtJjDtV3bIZNl82SfXbVyObxQkYm6BjItKid2OTb5eLMcKc0kbd3fAPLw==
+
+"@oven/bun-windows-x64@1.2.12":
+  version "1.2.12"
+  resolved "https://registry.npmjs.org/@oven/bun-windows-x64/-/bun-windows-x64-1.2.12.tgz"
+  integrity sha512-tyfHFOxBoBgIJmx9rAcSykmLKcLJOTg5eAbyz0jbZHm85ClLLNynBi+rp1pmEMm8wPxmMzdjNhc6XFSUoA4/pg==
+
 "@rollup/plugin-node-resolve@^16.0.1":
   version "16.0.1"
   resolved "https://registry.npmjs.org/@rollup/plugin-node-resolve/-/plugin-node-resolve-16.0.1.tgz"
@@ -42,10 +52,10 @@
     estree-walker "^2.0.2"
     picomatch "^4.0.2"
 
-"@rollup/rollup-darwin-arm64@4.40.2":
+"@rollup/rollup-win32-x64-msvc@4.40.2":
   version "4.40.2"
-  resolved "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.40.2.tgz"
-  integrity sha512-Gzf1Hn2Aoe8VZzevHostPX23U7N5+4D36WJNHK88NZHCJr7aVMG4fadqkIf72eqVPGjGc0HJHNuUaUcxiR+N/w==
+  resolved "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.40.2.tgz"
+  integrity sha512-bwspbWB04XJpeElvsp+DCylKfF4trJDa2Y9Go8O6A7YLX2LIKGcNK/CYImJN6ZP4DcuOHB4Utl3iCbnR62DudA==
 
 "@types/estree@^1.0.0", "@types/estree@1.0.7":
   version "1.0.7"
@@ -62,10 +72,32 @@
   resolved "https://registry.npmjs.org/@types/trusted-types/-/trusted-types-2.0.7.tgz"
   integrity sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==
 
+bun@^1.2.12:
+  version "1.2.12"
+  resolved "https://registry.npmjs.org/bun/-/bun-1.2.12.tgz"
+  integrity sha512-66kW1iPrYLEC3MEsmYJhcPdNwMrT6V+l0cwcI9wl1jt4a8lhBhomgM16jYnSDzBros2C/8oJ/aZY8Y9HUvLLTA==
+  optionalDependencies:
+    "@oven/bun-darwin-aarch64" "1.2.12"
+    "@oven/bun-darwin-x64" "1.2.12"
+    "@oven/bun-darwin-x64-baseline" "1.2.12"
+    "@oven/bun-linux-aarch64" "1.2.12"
+    "@oven/bun-linux-aarch64-musl" "1.2.12"
+    "@oven/bun-linux-x64" "1.2.12"
+    "@oven/bun-linux-x64-baseline" "1.2.12"
+    "@oven/bun-linux-x64-musl" "1.2.12"
+    "@oven/bun-linux-x64-musl-baseline" "1.2.12"
+    "@oven/bun-windows-x64" "1.2.12"
+    "@oven/bun-windows-x64-baseline" "1.2.12"
+
 deepmerge@^4.2.2:
   version "4.3.1"
   resolved "https://registry.npmjs.org/deepmerge/-/deepmerge-4.3.1.tgz"
   integrity sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==
+
+eletron@^0.0.1-security:
+  version "0.0.1-security"
+  resolved "https://registry.npmjs.org/eletron/-/eletron-0.0.1-security.tgz"
+  integrity sha512-GGWlbTUcmdNtpnBWC0jg3L3pz0rSUf1BrTtHRkxLGxepuzFqYGi6jtctNQBSc87TjupajFzfO1DMJlr9Ahm3YQ==
 
 estree-walker@^2.0.2:
   version "2.0.2"

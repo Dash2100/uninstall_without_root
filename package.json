@@ -5,6 +5,11 @@
   "dependencies": {
     "@material/web": "^2.3.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "bun": "^1.2.12",
     "rollup": "^4.40.2"
+  },
+  "devDependencies": {
+    "electron": "^36.1.0",
+    "eletron": "^0.0.1-security"
   }
 }
