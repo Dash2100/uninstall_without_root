@@ -6,6 +6,10 @@ mdui-text-field::part(icon) {
     margin-left: 5px;
 }
 
+mdui-dialog::part(body) {
+    padding-top: 40px;
+}
+
 mdui-card {
     box-shadow: none;
 }
@@ -27,7 +31,7 @@ mdui-chip {
     width: 100%;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.2s ease, visibility 0.3s ease;
     z-index: 1;
     top: 0;
     left: 0;

@@ -1,6 +1,8 @@
 const dialogConfirmUninstall = document.querySelector(".dialog-confirm-uninstall");
 const dialogWarning = document.querySelector(".dialog-warning");
 
+const dialogAppInfo = document.querySelector(".dialog-appinfo");
+
 const snackbarDisconnected = document.querySelector(".snackbar-disconnected");
 const snackbarConnected = document.querySelector(".snackbar-connected");
 const snackbarDeviceId = document.querySelector("#snackbar-device-id");
@@ -36,5 +38,5 @@ const initApp = () => {
     switchPage('appList');
 
     // 免責聲明
-    dialogWarning.open = true;
+    // dialogWarning.open = true;
 };
