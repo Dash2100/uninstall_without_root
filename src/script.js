@@ -38,5 +38,5 @@ const initApp = () => {
     switchPage('appList');
 
     // 免責聲明
-    dialogWarning.open = true;
+    // dialogWarning.open = true;
 };

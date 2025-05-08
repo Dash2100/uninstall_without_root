@@ -31,12 +31,17 @@
 
 <body class="mdui-theme-dark w-screen h-screen select-none overflow-hidden" onload="initApp()">
 
+    <!-- app loading overlay -->
+    <!-- <mdui-card variant="elevated"
+        class="loading-card fixed top-0 left-0 right-0 bottom-0 m-auto w-screen h-screen flex flex-col justify-center items-center rounded-none z-50">
+    </mdui-card> -->
+
     <!-- page-1 appList -->
     <div id="appList" class="page">
 
         <!-- app title bar -->
         <mdui-top-app-bar class="relative">
-            <mdui-top-app-bar-title class="ml-5">應用程式管理</mdui-top-app-bar-title>
+            <mdui-top-app-bar-title class="ml-5 font-bold">應用程式管理</mdui-top-app-bar-title>
             <mdui-button-icon icon="link" class="mx-5" onclick="snackbarConnected.open = true;">
             </mdui-button-icon>
             <!-- <mdui-button-icon icon="link_off" class="mx-5" onclick="snackbarDisconnected.open = true;">
@@ -107,6 +112,42 @@
                     </div>
                     <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon>
                 </mdui-card>
+                <mdui-card clickable variant="elevated" onclick="dialogAppInfo.open = true"
+                    class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">com.google.app</p>
+                        <p class="text-md text-gray-500">版本: 7.56.0</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon>
+                </mdui-card>
+                <mdui-card clickable variant="elevated" onclick="dialogAppInfo.open = true"
+                    class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">com.google.app</p>
+                        <p class="text-md text-gray-500">版本: 7.56.0</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon>
+                </mdui-card>
+                <mdui-card clickable variant="elevated" onclick="dialogAppInfo.open = true"
+                    class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">com.google.app</p>
+                        <p class="text-md text-gray-500">版本: 7.56.0</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon>
+                </mdui-card>
+                <mdui-card clickable variant="elevated" onclick="dialogAppInfo.open = true"
+                    class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">com.google.app</p>
+                        <p class="text-md text-gray-500">版本: 7.56.0</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon>
+                </mdui-card>
             </mdui-card>
         </div>
 
@@ -120,7 +161,7 @@
 
         <!-- app title bar -->
         <mdui-top-app-bar class=" relative">
-            <mdui-top-app-bar-title class="ml-5">功能設定</mdui-top-app-bar-title>
+            <mdui-top-app-bar-title class="ml-5 font-bold">功能設定</mdui-top-app-bar-title>
         </mdui-top-app-bar>
 
         <!-- content -->
@@ -159,7 +200,7 @@
 
         <!-- app title bar -->
         <mdui-top-app-bar class=" relative">
-            <mdui-top-app-bar-title class="ml-5">關於本工具</mdui-top-app-bar-title>
+            <mdui-top-app-bar-title class="ml-5 font-bold">關於本工具</mdui-top-app-bar-title>
         </mdui-top-app-bar>
 
         <!-- content -->
@@ -192,7 +233,7 @@
     </div>
 
     <!-- navigation bar -->
-    <mdui-navigation-bar value="apps" class="fixed bottom-0 left-0 right-0">
+    <mdui-navigation-bar value="apps" class="fixed bottom-0 left-0 right-0 z-30">
         <mdui-navigation-bar-item icon="build" value="apps"
             onclick="switchPage('appList')">程式列表</mdui-navigation-bar-item>
         <mdui-navigation-bar-item icon="tune" value="settings"
@@ -210,7 +251,7 @@
 
     <!-- warning dialog -->
     <mdui-dialog class="dialog-warning">
-        <span slot="headline">免責聲明</span>
+        <span slot="headline" class="font-bold">免責聲明</span>
         <span slot="description">
             解除安裝必要程式可能導致 Android 系統的損壞，請謹慎操作，不要解除安裝你沒把握的應用程式！
             <br />
@@ -220,7 +261,7 @@
             當您按下確定按鈕，即表示您已經同意上述條款。
             <br />
             <br />
-            <span class="text-yellow-600">
+            <span class="text-yellow-600 font-bold">
                 注意：部分中國手機無法支援！
             </span>
         </span>
@@ -230,7 +271,7 @@
     <!-- appinfo dialog -->
     <mdui-dialog close-on-overlay-click class="dialog-appinfo">
         <mdui-top-app-bar slot="header">
-            <mdui-top-app-bar-title class="ml-5">應用程式資訊</mdui-top-app-bar-title>
+            <mdui-top-app-bar-title class="ml-4">應用程式資訊</mdui-top-app-bar-title>
             <mdui-button variant="text" onclick="dialogAppInfo.open = false;">關閉</mdui-button>
         </mdui-top-app-bar>
         <span slot="description">
@@ -238,16 +279,17 @@
                 <p>APP包名: <span id="app-package">com.android.vending</span></p>
                 <p>APP版本: <span id="app-version">7.56.0</span></p>
                 <p>最後更新: <span id="app-size">2025-04-26 17:19:49</span></p>
+                <p>狀態: <span id="app-status">啟用</span></p>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">
-            <div class="flex w-full gap-2">
+            <div class="flex w-full gap-6">
                 <mdui-button slot="action" variant="tonal" icon="power_settings_new" class="flex-1">啟用程式</mdui-button>
                 <mdui-button slot="action" variant="tonal" icon="power_off" class="flex-1">停用程式</mdui-button>
             </div>
-            <div class="flex w-full gap-2">
+            <div class="flex w-full gap-6">
                 <mdui-button slot="action" variant="tonal" icon="download" class="flex-1">提取APK</mdui-button>
-                <mdui-button slot="action" icon="delete" class="flex-1">刪除</mdui-button>
+                <mdui-button slot="action" variant="tonal" icon="delete" class="flex-1">刪除</mdui-button>
             </div>
         </div>
     </mdui-dialog>
