@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" />
+    <meta name="renderer" content="webkit" />
+
+    <!-- app script -->
+    <script src="./script.js" defer></script>
+
+    <!-- mdui -->
+    <script src="https://unpkg.com/mdui@2/mdui.global.js" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/mdui@2/mdui.css">
+
+    <!-- icon -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> <!-- Filled -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"> <!-- Outlined -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"> <!-- Rounded -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet"> <!-- Sharp -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Two+Tone" rel="stylesheet"> <!-- Two Tone -->
+
+    <!-- tailwindcss -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <!-- main CSS -->
+    <link rel="stylesheet" href="./style.css">
+
+    <title>解除安裝原廠應用程式免ROOT</title>
+</head>
+
+<body class="mdui-theme-dark w-screen h-screen select-none overflow-hidden" onload="initApp()">
+
+    <!-- page-1 appList -->
+    <div id="appList" class="page">
+
+        <!-- app title bar -->
+        <mdui-top-app-bar class="relative">
+            <mdui-top-app-bar-title class="ml-5">應用程式管理</mdui-top-app-bar-title>
+            <mdui-button-icon icon="link" class="mx-5" onclick="snackbarConnected.open = true;">
+            </mdui-button-icon>
+            <!-- <mdui-button-icon icon="link_off" class="mx-5" onclick="snackbarDisconnected.open = true;">
+            </mdui-button-icon> -->
+        </mdui-top-app-bar>
+
+        <!-- search bar -->
+        <div class="w-full flex gap-3 justify-center items-center py-4">
+            <mdui-text-field icon="search" label="查詢應用程式"
+                class="w-9/12 max-w-2xl rounded-full overflow-hidden shadow-none"></mdui-text-field>
+            <mdui-button-icon variant="filled" icon="search" class="h-12 w-12"></mdui-button-icon>
+        </div>
+
+        <!-- content -->
+        <div class="p-8 pt-3">
+            <mdui-card class="flex flex-col overflow-auto app_list">
+                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">應用程式名稱</p>
+                        <p class="text-md text-gray-500">com.google.example.app</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="delete"
+                        onclick="dialog.open = true"></mdui-button-icon>
+                </mdui-card>
+                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">應用程式名稱</p>
+                        <p class="text-md text-gray-500">com.google.example.app</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="delete"></mdui-button-icon>
+                </mdui-card>
+                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">應用程式名稱</p>
+                        <p class="text-md text-gray-500">com.google.example.app</p>
+                    </div>
+                    <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="delete"></mdui-button-icon>
+                </mdui-card>
+            </mdui-card>
+        </div>
+
+        <!-- floating action button -->
+        <mdui-fab icon="refresh" class="fixed bottom-24 right-6"></mdui-fab>
+
+    </div>
+
+    <!-- page-2 settings -->
+    <div id="settings" class="page">
+
+        <!-- app title bar -->
+        <mdui-top-app-bar class=" relative">
+            <mdui-top-app-bar-title class="ml-5">功能設定</mdui-top-app-bar-title>
+        </mdui-top-app-bar>
+
+        <!-- content -->
+        <div class="p-8 pt-3">
+            <div class="flex flex-col gap-4">
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="translate"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">顯示語言</p>
+                        <p class="text-md text-gray-500">
+                            切換本工具的語言
+                        </p>
+                    </div>
+                    <mdui-segmented-button-group class="my-auto ml-auto mr-6" selects="single" value="ch">
+                        <mdui-segmented-button value="ch">CH</mdui-segmented-button>
+                        <mdui-segmented-button value="eng">EN</mdui-segmented-button>
+                    </mdui-segmented-button-group>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="contrast"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">暗色主題</p>
+                        <p class="text-md text-gray-500">
+                            背景及文字將變為深色
+                        </p>
+                    </div>
+                    <mdui-switch checked class="my-auto ml-auto mr-6"></mdui-switch>
+                </mdui-card>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- page-3 about -->
+    <div id="about" class="page">
+
+        <!-- app title bar -->
+        <mdui-top-app-bar class=" relative">
+            <mdui-top-app-bar-title class="ml-5">關於本工具</mdui-top-app-bar-title>
+        </mdui-top-app-bar>
+
+        <!-- content -->
+        <div class="p-8 pt-3">
+            <div class="flex flex-col gap-4">
+                <mdui-card class="w-full flex flex-col p-8 gap-5">
+                    <mdui-avatar class="mx-auto w-28 h-28"
+                        src="https://avatars.githubusercontent.com/u/87257550?v=4"></mdui-avatar>
+                    <div class="flex flex-col justify-center gap-2">
+                        <p class="text-lg text-center">解除安裝原廠應用程式免ROOT</p>
+                        <p class="text-md text-gray-500 text-center">
+                            一個專為 Android 手機設計的免 ROOT 解除安裝程式工具，專治那些刪不掉的原廠 APP
+                        </p>
+
+                        <!-- social link -->
+                        <div class="flex gap-4 justify-center my-5">
+                            <mdui-chip icon="code">GitHub</mdui-chip>
+                            <mdui-chip icon="subscriptions">YouTube</mdui-chip>
+                            <mdui-chip icon="bug_report">問題回報</mdui-chip>
+                        </div>
+
+                        <p class="text-md text-gray-500 text-center">
+                            版本：beta 0.0.1
+                        </p>
+                    </div>
+                </mdui-card>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- navigation bar -->
+    <mdui-navigation-bar value="apps" class="fixed bottom-0 left-0 right-0">
+        <mdui-navigation-bar-item icon="build" value="apps"
+            onclick="switchPage('appList')">程式列表</mdui-navigation-bar-item>
+        <mdui-navigation-bar-item icon="tune" value="settings"
+            onclick="switchPage('settings')">設定</mdui-navigation-bar-item>
+        <mdui-navigation-bar-item icon="info" value="about" onclick="switchPage('about')">關於</mdui-navigation-bar-item>
+    </mdui-navigation-bar>
+
+    <!-- confirm delete dialog -->
+    <mdui-dialog close-on-overlay-click class="dialog-confirm-uninstall">
+        <span slot="headline">確定要刪除此應用程式嗎?</span>
+        <span slot="description">請謹慎操作，刪除後將無法恢復，並且請避免刪除系統必要應用程式，否則可能會導致系統不穩定或無法啟動。</span>
+        <mdui-button slot="action" variant="text">取消</mdui-button>
+        <mdui-button slot="action" variant="tonal">刪除</mdui-button>
+    </mdui-dialog>
+
+    <!-- warning dialog -->
+    <mdui-dialog class="dialog-warning">
+        <span slot="headline">免責聲明</span>
+        <span slot="description">
+            解除安裝必要程式可能導致 Android 系統的損壞，請謹慎操作，不要解除安裝你沒把握的應用程式！
+            <br />
+            我們並不會對任何因使用本程式而導致的損壞或資料會損負責。
+            <br />
+            <br />
+            當您按下確定按鈕，即表示您已經同意上述條款。
+            <br />
+            <br />
+            <span class="text-yellow-600">
+                注意：部分中國手機無法支援！
+            </span>
+        </span>
+        <mdui-button slot="action" variant="tonal" onclick="dialogWarning.open = false;">確定</mdui-button>
+    </mdui-dialog>
+
+    <!-- info snackbar -->
+    <mdui-snackbar class="snackbar-disconnected mb-20">目前未連接到 ADB 裝置</mdui-snackbar>
+    <mdui-snackbar class="snackbar-connected mb-20">
+        目前已連接到 ADB 裝置: <span id="snackbar-device-id">1e778e25</span>
+    </mdui-snackbar>
+</body>
+
+</html>

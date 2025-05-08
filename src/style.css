@@ -1,0 +1,43 @@
+mdui-text-field::part(container) {
+    box-shadow: none;
+}
+
+mdui-text-field::part(icon) {
+    margin-left: 5px;
+}
+
+mdui-card {
+    box-shadow: none;
+}
+
+.app_list {
+    min-height: calc(100vh - 280px);
+}
+
+mdui-segmented-button {
+    border: 1px solid;
+}
+
+mdui-chip {
+    border: 1px solid;
+}
+
+.page {
+    position: absolute;
+    width: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 56px;
+    overflow-y: auto;
+}
+
+.page.active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+}
