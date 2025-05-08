@@ -5,7 +5,10 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 500,
     height: 900,
-    autoHideMenuBar: true
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js')
+    }
   });
 
   win.loadFile("./src/index.html");

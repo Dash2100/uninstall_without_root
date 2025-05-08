@@ -1,15 +1,38 @@
 {
-  "name": "my-electron-app",
+  "name": "uninstall-without-root",
   "version": "1.0.0",
+  "description": "Uninstall android app without root",
   "main": "main.js",
-  "dependencies": {
-    "@material/web": "^2.3.0",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "bun": "^1.2.12",
-    "rollup": "^4.40.2"
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "electron",
+    "desktop",
+    "application"
+  ],
+  "author": "Dash2100",
+  "license": "MIT",
   "devDependencies": {
-    "electron": "^36.1.0",
-    "eletron": "^0.0.1-security"
+    "electron": "^28.1.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.dash2100.uninstallwithoutroot",
+    "productName": "Uninstall Without ROOT",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }
