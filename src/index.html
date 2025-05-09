@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum=1, shrink-to-fit=no" />
     <meta name="renderer" content="webkit" />
 
     <!-- app script -->
@@ -279,12 +279,12 @@
                 <p>APP包名: <span id="app-package">com.android.vending</span></p>
                 <p>APP版本: <span id="app-version">7.56.0</span></p>
                 <p>最後更新: <span id="app-size">2025-04-26 17:19:49</span></p>
-                <p>狀態: <span id="app-status">啟用</span></p>
+                <p>啟用狀態: <span id="app-status">啟用中</span></p>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">
             <div class="flex w-full gap-6">
-                <mdui-button slot="action" variant="tonal" icon="power_settings_new" class="flex-1">啟用程式</mdui-button>
+                <mdui-button slot="action" variant="tonal" icon="power_settings_new" class="flex-1"disabled>啟用程式</mdui-button>
                 <mdui-button slot="action" variant="tonal" icon="power_off" class="flex-1">停用程式</mdui-button>
             </div>
             <div class="flex w-full gap-6">
@@ -292,6 +292,23 @@
                 <mdui-button slot="action" variant="tonal" icon="delete" class="flex-1">刪除</mdui-button>
             </div>
         </div>
+    </mdui-dialog>
+
+    <!-- delete app dialog -->
+    <mdui-dialog close-on-overlay-click class="dialog-delete-app">
+        <span slot="headline">刪除應用程式</span>
+        <span slot="description">
+            <div class="flex flex-col gap-3">
+                <p>您確定要刪除應用程式 <span id="delete-app-name" class="font-medium">com.android.vending</span> 嗎？</p>
+                
+                <div class="flex items-center gap-2 mt-2">
+                    <mdui-checkbox id="delete-app-data"></mdui-checkbox>
+                    <label for="delete-app-data" class="text-sm">同時刪除應用程式資料</label>
+                </div>
+            </div>
+        </span>
+        <mdui-button slot="action" variant="text" onclick="document.querySelector('.dialog-delete-app').open = false">取消</mdui-button>
+        <mdui-button id="confirm-delete-btn" slot="action" variant="filled" color="error">確認刪除</mdui-button>
     </mdui-dialog>
 
     <!-- info snackbar -->

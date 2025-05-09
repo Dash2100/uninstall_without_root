@@ -1,7 +1,7 @@
 const dialogConfirmUninstall = document.querySelector(".dialog-confirm-uninstall");
 const dialogWarning = document.querySelector(".dialog-warning");
-
 const dialogAppInfo = document.querySelector(".dialog-appinfo");
+const dialogDeleteApp = document.querySelector(".dialog-delete-app");
 
 const snackbarDisconnected = document.querySelector(".snackbar-disconnected");
 const snackbarConnected = document.querySelector(".snackbar-connected");
@@ -39,4 +39,7 @@ const initApp = () => {
 
     // 免責聲明
     // dialogWarning.open = true;
+
+    // Test dialog - can be removed in production
+    // dialogDeleteApp.open = true; 
 };
