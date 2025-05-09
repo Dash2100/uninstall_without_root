@@ -20,6 +20,8 @@ mdui-card {
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
+    scrollbar-width: thin;
+    /* Firefox */
 }
 
 /* Material Design 細型滾動條樣式 */
@@ -44,6 +46,37 @@ mdui-card {
 .app_list>mdui-card {
     flex-shrink: 0;
     min-height: 80px;
+}
+
+/* 處理延遲加載的樣式 */
+#app-list-container {
+    overflow-y: auto;
+    max-height: calc(100vh - 270px);
+    scrollbar-width: thin;
+    /* Firefox */
+}
+
+#app-list-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+#app-list-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+#app-list-container::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.5);
+    border-radius: 4px;
+}
+
+#app-list-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.7);
+}
+
+/* 載入指示器樣式 */
+#loading-indicator {
+    padding: 10px 0;
 }
 
 mdui-segmented-button {
@@ -91,4 +124,20 @@ mdui-chip {
     opacity: 1;
     visibility: visible;
     z-index: 2;
+}
+
+/* Package name 樣式，防止溢出 */
+.package-name {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 10px;
+}
+
+/* 應用卡片彈性布局 */
+mdui-card.flex {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
 }
