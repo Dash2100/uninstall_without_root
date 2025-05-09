@@ -170,25 +170,46 @@
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="translate"></mdui-avatar>
                     <div class="flex flex-col justify-center">
-                        <p class="text-lg">顯示語言</p>
+                        <p class="text-lg font-bold">顯示語言</p>
                         <p class="text-md text-gray-500">
                             切換本工具的語言
                         </p>
                     </div>
-                    <mdui-segmented-button-group class="my-auto ml-auto mr-6" required selects="single" value="ch">
-                        <mdui-segmented-button value="ch">中文</mdui-segmented-button>
+                    <mdui-segmented-button-group class="my-auto ml-auto mr-6" required selects="single" value="zh"
+                        id="settings-language">
+                        <mdui-segmented-button value="zh">中文</mdui-segmented-button>
                         <mdui-segmented-button value="eng">ENG</mdui-segmented-button>
                     </mdui-segmented-button-group>
                 </mdui-card>
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="contrast"></mdui-avatar>
                     <div class="flex flex-col justify-center">
-                        <p class="text-lg">暗色主題</p>
+                        <p class="text-lg font-bold">暗色主題</p>
                         <p class="text-md text-gray-500">
                             背景及文字將變為深色
                         </p>
                     </div>
+                    <mdui-switch checked class="my-auto ml-auto mr-6" id="settings-darkmode"></mdui-switch>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="delete"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg font-bold">同時刪除資料</p>
+                        <p class="text-md text-gray-500">
+                            預設勾選「同時刪除APP資料」
+                        </p>
+                    </div>
                     <mdui-switch checked class="my-auto ml-auto mr-6"></mdui-switch>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="folder"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg font-bold">提取 APK 儲存路徑</p>
+                        <p class="text-md text-gray-500">
+                            C:\Users\tony2100\...\extract_apks
+                        </p>
+                    </div>
+                    <mdui-button-icon variant="filled" icon="search" class="my-auto ml-auto mr-6"></mdui-button-icon>
                 </mdui-card>
             </div>
         </div>
@@ -210,7 +231,7 @@
                     <mdui-avatar class="mx-auto w-28 h-28"
                         src="https://avatars.githubusercontent.com/u/87257550?v=4"></mdui-avatar>
                     <div class="flex flex-col justify-center gap-2">
-                        <p class="text-lg text-center">解除安裝原廠應用程式免ROOT</p>
+                        <p class="text-lg text-center font-bold">解除安裝原廠應用程式免ROOT</p>
                         <p class="text-md text-gray-500 text-center">
                             一個專為 Android 手機設計的免 ROOT 解除安裝程式工具，專治那些刪不掉的原廠 APP
                         </p>
@@ -284,12 +305,14 @@
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">
             <div class="flex w-full gap-6">
-                <mdui-button slot="action" variant="tonal" icon="power_settings_new" class="flex-1"disabled>啟用程式</mdui-button>
+                <mdui-button slot="action" variant="tonal" icon="power_settings_new" class="flex-1"
+                    disabled>啟用程式</mdui-button>
                 <mdui-button slot="action" variant="tonal" icon="power_off" class="flex-1">停用程式</mdui-button>
             </div>
             <div class="flex w-full gap-6">
                 <mdui-button slot="action" variant="tonal" icon="download" class="flex-1">提取APK</mdui-button>
-                <mdui-button slot="action" variant="tonal" icon="delete" class="flex-1">刪除</mdui-button>
+                <mdui-button slot="action" variant="tonal" icon="delete" class="flex-1"
+                    onclick="uninstallApp(1);">刪除</mdui-button>
             </div>
         </div>
     </mdui-dialog>
@@ -300,15 +323,31 @@
         <span slot="description">
             <div class="flex flex-col gap-3">
                 <p>您確定要刪除應用程式 <span id="delete-app-name" class="font-medium">com.android.vending</span> 嗎？</p>
-                
+
+                <p class="text-yellow-600 font-bold">注意：請不要刪除系統必要應用程式，否則可能會導致系統不穩定或無法啟動。</p>
+
                 <div class="flex items-center gap-2 mt-2">
-                    <mdui-checkbox id="delete-app-data"></mdui-checkbox>
-                    <label for="delete-app-data" class="text-sm">同時刪除應用程式資料</label>
+                    <mdui-checkbox id="delete-app-data">同時刪除APP資料</mdui-checkbox>
                 </div>
             </div>
         </span>
-        <mdui-button slot="action" variant="text" onclick="document.querySelector('.dialog-delete-app').open = false">取消</mdui-button>
+        <mdui-button slot="action" variant="text"
+            onclick="document.querySelector('.dialog-delete-app').open = false">取消</mdui-button>
         <mdui-button id="confirm-delete-btn" slot="action" variant="filled" color="error">確認刪除</mdui-button>
+    </mdui-dialog>
+
+    <!-- adb response dialog -->
+    <mdui-dialog close-on-overlay-click class="dialog-adb-response">
+        <span slot="headline" class="w-screen">ADB 回應</span>
+        <span slot="description">
+            <div class="flex flex-col gap-3">
+                <p>回應內容：</p>
+                <p id="adb-response" class="text-gray-500">Package com.quicinc.voice.activation new state: disabled-user
+                </p>
+            </div>
+        </span>
+        <mdui-button slot="action" variant="text"
+            onclick="document.querySelector('.dialog-adb-response').open = false">關閉</mdui-button>
     </mdui-dialog>
 
     <!-- info snackbar -->
