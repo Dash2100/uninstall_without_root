@@ -268,11 +268,11 @@
 <template id="app-card-template">
     <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
         <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
-        <div class="flex flex-col justify-center">
-            <p class="text-lg">{{app.name}}</p>
+        <div class="flex flex-col justify-center flex-1 min-w-0">
+            <p class="text-lg truncate w-11/12">{{app.name}}</p>
             <p class="text-md text-gray-500">{{app.type}}</p>
         </div>
-        <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon>
+        <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
     </mdui-card>
 </template>
 

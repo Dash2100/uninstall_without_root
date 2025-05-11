@@ -75,33 +75,45 @@ const showSnackAlert = (msg) => {
     snackbarAlert.open = true;
 }
 
-const updateAppList = (apps) => {
-    const appCardTemplate = document.getElementById('app-card-template').innerHTML;
-    const appListContainer = document.getElementById('app_list');
+const createAppCard = (app, appType) => {
+    // Get template content as string
+    const templateHTML = document.getElementById('app-card-template').innerHTML;
 
-    // clear previous app list
-    appListContainer.innerHTML = '';
+    // Replace placeholders with actual values
+    const cardHTML = templateHTML
+        .replace('{{app.name}}', app.package_name)
+        .replace('{{app.type}}', appType);
 
-    const userApps = apps.apps.user || {};
-    Object.values(userApps).forEach(app => {
-        let cardHTML = appCardTemplate
-            .replace('{{app.name}}', app.package_name)
-            .replace('{{app.type}}', '使用者程式');
+    // Convert string to DOM element
+    const template = document.createElement('template');
+    template.innerHTML = cardHTML.trim();
 
-        appListContainer.innerHTML += cardHTML;
-    });
-
-    const systemApps = apps.apps.system || {};
-    Object.values(systemApps).forEach(app => {
-        let cardHTML = appCardTemplate
-            .replace('{{app.name}}', app.package_name)
-            .replace('{{app.type}}', '系統程式');
-
-        appListContainer.innerHTML += cardHTML;
-    });
+    return template.content.firstChild;
 };
 
-// ADB commands
+const updateAppList = (apps) => {
+    const appListContainer = document.getElementById('app_list');
+
+    // Use document fragment to batch DOM operations
+    const fragment = document.createDocumentFragment();
+
+    // Process user apps
+    const userApps = apps.apps.user || {};
+    Object.values(userApps).forEach(app => {
+        fragment.appendChild(createAppCard(app, '使用者程式'));
+    });
+
+    // Process system apps
+    const systemApps = apps.apps.system || {};
+    Object.values(systemApps).forEach(app => {
+        fragment.appendChild(createAppCard(app, '系統程式'));
+    });
+
+    // Clear previous content and add new content in a single operation
+    appListContainer.innerHTML = '';
+    appListContainer.appendChild(fragment);
+};
+
 const getDevice = () => {
     // state
     isConnected = false;
@@ -157,6 +169,12 @@ const getDevice = () => {
 }
 
 const getAppList = () => {
+    // check state
+    if (!isConnected) {
+        showSnackAlert("請先連接到設備");
+        return;
+    }
+
     // 獲取應用列表
     return window.electronAPI.executeAdbCommand('shell pm list packages -f')
         .then((response) => {
@@ -173,13 +191,18 @@ const getAppList = () => {
             };
 
             lines.forEach(line => {
-                const match = line.match(/package:(.+?)=(.+)/);
+                // Extract only the package name - the part after the last '=' character
+                const lastEqualsIndex = line.lastIndexOf('=');
 
-                if (match) {
-                    const apkPath = match[1];
-                    const packageName = match[2];
+                if (lastEqualsIndex !== -1) {
+                    // Extract just the package name (after the last equals sign)
+                    const packageName = line.substring(lastEqualsIndex + 1);
+                    // Store the path info but don't display it
+                    const apkPath = line.substring(8, lastEqualsIndex);
 
-                    const isUserApp = apkPath.includes('/data/app/');
+                    // Identify user apps by path pattern
+                    const isUserApp = line.includes('/data/app/') ||
+                        line.includes('/data/user/');
 
                     if (isUserApp) {
                         appsDict.apps.user[packageName] = {
@@ -193,7 +216,8 @@ const getAppList = () => {
                         };
                     }
                 } else if (line.trim()) {
-                    const packageName = line.trim();
+                    // Handle packages without path information
+                    const packageName = line.replace('package:', '').trim();
                     appsDict.apps.system[packageName] = {
                         package_name: packageName,
                         app_path: ""

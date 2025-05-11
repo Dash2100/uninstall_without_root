@@ -10,6 +10,10 @@ mdui-text-field::part(icon) {
     padding-top: 40px;
 }
 
+#app-checkbox{
+    
+}
+
 mdui-card {
     box-shadow: none;
 }
