@@ -2,7 +2,7 @@
   "name": "uninstall-without-root",
   "version": "1.0.0",
   "description": "Uninstall android app without root",
-  "main": "main.js",
+  "main": "app.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
