@@ -1,0 +1,20 @@
+{
+  "app": {
+    "language": "eng",
+    "darkMode": true,
+    "window": {
+      "width": 500,
+      "height": 900
+    }
+  },
+  "adb": {
+    "autoConnect": true,
+    "paths": {
+      "mac-arm64": "adb/mac-arm64/adb",
+      "win-x64": "adb/win-x64/adb.exe"
+    }
+  },
+  "developer": {
+    "devTools": false
+  }
+}

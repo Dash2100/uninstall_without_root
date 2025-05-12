@@ -6,10 +6,6 @@ const dialogADBResponse = document.querySelector(".dialog-adb-response");
 
 const snackbarAlert = document.querySelector("#snackbar-alert");
 
-// settings
-const settingsLanguage = document.getElementById('settings-language');
-const settingsDarkMode = document.getElementById('settings-darkmode');
-
 // icon
 const iconConnected = document.getElementById('icon-connected');
 const iconDisconnected = document.getElementById('icon-disconnected');
@@ -23,6 +19,7 @@ const pages = {
 // states
 let appLang = "zh";
 let isConnected = false;
+let appConfig = {}; // 儲存配置
 
 const switchPage = (pageId) => {
     const currentPage = document.querySelector('.page.active');
@@ -48,25 +45,6 @@ const uninstallApp = (appId) => {
     dialogDeleteApp.open = true;
 };
 
-// settings
-
-settingsLanguage.addEventListener('change', (event) => {
-    const selectedLanguage = event.target.value;
-
-    if (selectedLanguage === "") {
-        setTimeout(() => {
-            settingsLanguage.value = appLang;
-        }, 1);
-
-        return;
-    }
-    appLang = selectedLanguage;
-});
-
-settingsDarkMode.addEventListener('change', (event) => {
-    document.body.classList.toggle('mdui-theme-dark');
-});
-
 // UI
 const showSnackAlert = (msg) => {
     console.log('[snackbar]:', msg);
@@ -76,15 +54,12 @@ const showSnackAlert = (msg) => {
 }
 
 const createAppCard = (app, appType) => {
-    // Get template content as string
     const templateHTML = document.getElementById('app-card-template').innerHTML;
 
-    // Replace placeholders with actual values
     const cardHTML = templateHTML
         .replace('{{app.name}}', app.package_name)
         .replace('{{app.type}}', appType);
 
-    // Convert string to DOM element
     const template = document.createElement('template');
     template.innerHTML = cardHTML.trim();
 
@@ -93,23 +68,18 @@ const createAppCard = (app, appType) => {
 
 const updateAppList = (apps) => {
     const appListContainer = document.getElementById('app_list');
-
-    // Use document fragment to batch DOM operations
     const fragment = document.createDocumentFragment();
 
-    // Process user apps
     const userApps = apps.apps.user || {};
     Object.values(userApps).forEach(app => {
         fragment.appendChild(createAppCard(app, '使用者程式'));
     });
 
-    // Process system apps
     const systemApps = apps.apps.system || {};
     Object.values(systemApps).forEach(app => {
         fragment.appendChild(createAppCard(app, '系統程式'));
     });
 
-    // Clear previous content and add new content in a single operation
     appListContainer.innerHTML = '';
     appListContainer.appendChild(fragment);
 };
@@ -191,13 +161,10 @@ const getAppList = () => {
             };
 
             lines.forEach(line => {
-                // Extract only the package name - the part after the last '=' character
                 const lastEqualsIndex = line.lastIndexOf('=');
 
                 if (lastEqualsIndex !== -1) {
-                    // Extract just the package name (after the last equals sign)
                     const packageName = line.substring(lastEqualsIndex + 1);
-                    // Store the path info but don't display it
                     const apkPath = line.substring(8, lastEqualsIndex);
 
                     // Identify user apps by path pattern
@@ -216,7 +183,6 @@ const getAppList = () => {
                         };
                     }
                 } else if (line.trim()) {
-                    // Handle packages without path information
                     const packageName = line.replace('package:', '').trim();
                     appsDict.apps.system[packageName] = {
                         package_name: packageName,
@@ -230,18 +196,20 @@ const getAppList = () => {
         })
         .catch((error) => {
             console.error('[adb] Get App List Error:', error);
-            // clear app list
+
             const appListContainer = document.getElementById('app_list');
             appListContainer.innerHTML = '';
 
-            // show error message
             showSnackAlert("獲取應用列表失敗: " + error);
         });
 };
 
 const initApp = () => {
-    // init pqage
+    // init page
     switchPage('appList');
+
+    // 載入配置
+    loadConfig();
 
     // 免責聲明
     // dialogWarning.open = true;
