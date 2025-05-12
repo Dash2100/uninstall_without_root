@@ -4,25 +4,20 @@ const dialogAppInfo = document.querySelector(".dialog-appinfo");
 const dialogDeleteApp = document.querySelector(".dialog-delete-app");
 const dialogADBResponse = document.querySelector(".dialog-adb-response");
 
-const snackbarAlert = document.querySelector("#snackbar-alert");
-
-// settings
-const settingsLanguage = document.getElementById('settings-language');
-const settingsDarkMode = document.getElementById('settings-darkmode');
-
 // icon
 const iconConnected = document.getElementById('icon-connected');
 const iconDisconnected = document.getElementById('icon-disconnected');
 
+// states
+let appLang = "zh";
+let isConnected = false;
+
+// pages
 const pages = {
     appList: document.getElementById('appList'),
     settings: document.getElementById('settings'),
     about: document.getElementById('about')
 };
-
-// states
-let appLang = "zh";
-let isConnected = false;
 
 const switchPage = (pageId) => {
     const currentPage = document.querySelector('.page.active');
@@ -48,43 +43,14 @@ const uninstallApp = (appId) => {
     dialogDeleteApp.open = true;
 };
 
-// settings
-
-settingsLanguage.addEventListener('change', (event) => {
-    const selectedLanguage = event.target.value;
-
-    if (selectedLanguage === "") {
-        setTimeout(() => {
-            settingsLanguage.value = appLang;
-        }, 1);
-
-        return;
-    }
-    appLang = selectedLanguage;
-});
-
-settingsDarkMode.addEventListener('change', (event) => {
-    document.body.classList.toggle('mdui-theme-dark');
-});
-
 // UI
-const showSnackAlert = (msg) => {
-    console.log('[snackbar]:', msg);
-
-    snackbarAlert.innerText = msg;
-    snackbarAlert.open = true;
-}
-
 const createAppCard = (app, appType) => {
-    // Get template content as string
     const templateHTML = document.getElementById('app-card-template').innerHTML;
 
-    // Replace placeholders with actual values
     const cardHTML = templateHTML
         .replace('{{app.name}}', app.package_name)
         .replace('{{app.type}}', appType);
 
-    // Convert string to DOM element
     const template = document.createElement('template');
     template.innerHTML = cardHTML.trim();
 
@@ -94,22 +60,18 @@ const createAppCard = (app, appType) => {
 const updateAppList = (apps) => {
     const appListContainer = document.getElementById('app_list');
 
-    // Use document fragment to batch DOM operations
     const fragment = document.createDocumentFragment();
 
-    // Process user apps
     const userApps = apps.apps.user || {};
     Object.values(userApps).forEach(app => {
         fragment.appendChild(createAppCard(app, '使用者程式'));
     });
 
-    // Process system apps
     const systemApps = apps.apps.system || {};
     Object.values(systemApps).forEach(app => {
         fragment.appendChild(createAppCard(app, '系統程式'));
     });
 
-    // Clear previous content and add new content in a single operation
     appListContainer.innerHTML = '';
     appListContainer.appendChild(fragment);
 };
@@ -178,8 +140,6 @@ const getAppList = () => {
     // 獲取應用列表
     return window.electronAPI.executeAdbCommand('shell pm list packages -f')
         .then((response) => {
-            // console.log('[adb] Response:', response);
-
             const lines = response.trim().split('\n');
 
             // object struct
@@ -191,16 +151,12 @@ const getAppList = () => {
             };
 
             lines.forEach(line => {
-                // Extract only the package name - the part after the last '=' character
                 const lastEqualsIndex = line.lastIndexOf('=');
 
                 if (lastEqualsIndex !== -1) {
-                    // Extract just the package name (after the last equals sign)
                     const packageName = line.substring(lastEqualsIndex + 1);
-                    // Store the path info but don't display it
                     const apkPath = line.substring(8, lastEqualsIndex);
 
-                    // Identify user apps by path pattern
                     const isUserApp = line.includes('/data/app/') ||
                         line.includes('/data/user/');
 
@@ -216,7 +172,6 @@ const getAppList = () => {
                         };
                     }
                 } else if (line.trim()) {
-                    // Handle packages without path information
                     const packageName = line.replace('package:', '').trim();
                     appsDict.apps.system[packageName] = {
                         package_name: packageName,
@@ -241,11 +196,11 @@ const getAppList = () => {
 
 const initApp = () => {
     // init pqage
-    switchPage('appList');
+    switchPage('settings');
 
     // 免責聲明
     // dialogWarning.open = true;
 
     // 取得設備
-    getDevice();
+    // getDevice();
 };

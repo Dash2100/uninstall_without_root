@@ -1,10 +1,12 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
+
 const { exec } = require('child_process');
+
 const os = require('os');
 const fs = require('fs');
+const path = require('path');
 
-// adb functions
+// ================= ADB functions =================
 
 function getAdbPath() {
     const platform = os.platform();
@@ -58,6 +60,56 @@ function createWindow() {
     win.loadFile("./src/index.html");
 }
 
+// readconfig
+function resetConfigToDefault() {
+    const configPath = path.join(app.getPath('userData'), 'config.json');
+
+    console.log("[config] Config Path: ", configPath);
+
+    if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+        console.log("[config] Config file deleted.");
+    }
+
+    // Create default config
+    const defaultConfig = {
+        "language": "zh",
+        "darkmode": true,
+        "delete_data": false,
+        "debug_mode": false,
+        "extrect_path": "./extrect_apks"
+    }
+
+    fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 4), 'utf-8');
+    console.log("[config] Config file created with default values.");
+}
+
+function readConfig() {
+    const configPath = path.join(app.getPath('userData'), 'config.json');
+
+    console.log("[config] Config Path: ", configPath);
+
+    if (!fs.existsSync(configPath)) {
+        resetConfigToDefault();
+
+        // Read the config file again
+        return readConfig();
+    }
+
+    // Read the config file
+    const configData = fs.readFileSync(configPath, 'utf-8');
+
+    try {
+        const config = JSON.parse(configData);
+        console.log("[config] Config file loaded:", config);
+
+        return config;
+    } catch (error) {
+        console.error("[config] Failed to parse config file:", error);
+        return null;
+    }
+}
+
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
         app.quit();
@@ -72,6 +124,8 @@ app.on("activate", () => {
 
 app.whenReady().then(() => {
     console.log("[adb] Used Adb Path: ", getAdbPath());
+
+    readConfig();
 
     // Initialize ADB
     initADB();
@@ -101,4 +155,30 @@ ipcMain.handle('execute-adb-command', async (event, command) => {
             resolve(stdout);
         });
     });
+});
+
+ipcMain.handle('dialog:showOpenDialog', async (event, options) => {
+    const { dialog } = require('electron');
+    const result = await dialog.showOpenDialog(options);
+    return result;
+});
+
+// get config
+ipcMain.handle('get-config', async (event) => {
+    return readConfig();
+});
+
+// set config
+ipcMain.handle('set-config', async (event, config) => {
+    const configPath = path.join(app.getPath('userData'), 'config.json');
+
+    console.log("[config] Config Path: ", configPath);
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf-8');
+    console.log("[config] Config file updated:", config);
+});
+
+// reset config
+ipcMain.handle('reset-config', async (event) => {
+    resetConfigToDefault();
 });

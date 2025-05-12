@@ -7,7 +7,9 @@
     <meta name="renderer" content="webkit" />
 
     <!-- app script -->
-    <script src="./script.js" defer></script>
+    <script src="./scripts/settings.js" defer></script>
+    <script src="./scripts/alert.js" defer></script>
+    <script src="./scripts/func.js" defer></script>
 
     <!-- mdui -->
     <script src="https://unpkg.com/mdui@2/mdui.global.js" defer></script>
@@ -81,7 +83,7 @@
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="translate"></mdui-avatar>
                     <div class="flex flex-col justify-center">
-                        <p class="text-lg font-bold">顯示語言</p>
+                        <p class="text-lg">顯示語言</p>
                         <p class="text-md text-gray-500">
                             切換本工具的語言
                         </p>
@@ -95,35 +97,49 @@
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="contrast"></mdui-avatar>
                     <div class="flex flex-col justify-center">
-                        <p class="text-lg font-bold">暗色主題</p>
+                        <p class="text-lg">暗色主題</p>
                         <p class="text-md text-gray-500">
                             背景及文字將變為深色
                         </p>
                     </div>
-                    <mdui-switch checked class="my-auto ml-auto mr-6" id="settings-darkmode"></mdui-switch>
+                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-darkmode"></mdui-switch>
                 </mdui-card>
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="delete"></mdui-avatar>
                     <div class="flex flex-col justify-center">
-                        <p class="text-lg font-bold">同時刪除資料</p>
+                        <p class="text-lg">同時刪除資料</p>
                         <p class="text-md text-gray-500">
                             預設勾選「同時刪除APP資料」
                         </p>
                     </div>
-                    <mdui-switch checked class="my-auto ml-auto mr-6"></mdui-switch>
+                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-appdata"></mdui-switch>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">除錯模式</p>
+                        <p class="text-md text-gray-500">
+                            開啟後會顯示 ADB Console
+                        </p>
+                    </div>
+                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-debugmode"></mdui-switch>
                 </mdui-card>
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="folder"></mdui-avatar>
                     <div class="flex flex-col justify-center">
-                        <p class="text-lg font-bold">提取 APK 儲存路徑</p>
-                        <p class="text-md text-gray-500">
-                            C:\Users\tony2100\...\extract_apks
+                        <p class="text-lg">提取 APK 儲存路徑</p>
+                        <p class="text-md text-gray-500" id="settings-extract-path">
+                            Extract APK Path
                         </p>
                     </div>
-                    <mdui-button-icon variant="filled" icon="search" class="my-auto ml-auto mr-6"></mdui-button-icon>
+                    <mdui-button-icon variant="filled" icon="search" class="my-auto ml-auto mr-6"
+                        id="settings-chapkpath"></mdui-button-icon>
                 </mdui-card>
             </div>
         </div>
+
+        <!-- <mdui-fab icon="refresh" class="fixed bottom-32 right-6" onclick="getAppList();">Hello</mdui-fab> -->
+        <mdui-fab extended icon="refresh" class="fixed bottom-32 right-9" id="settings-reset">重置設定</mdui-fab>
 
     </div>
 
@@ -262,7 +278,7 @@
     </mdui-dialog>
 
     <!-- info snackbar -->
-    <mdui-snackbar class="snackbar-connected mb-20" id="snackbar-alert"></mdui-snackbar>
+    <mdui-snackbar class="snackbar-connected mb-20" id="snackbar-alert" auto-close-delay="2500"></mdui-snackbar>
 </body>
 
 <template id="app-card-template">
@@ -274,6 +290,15 @@
         </div>
         <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
     </mdui-card>
+</template>
+
+<template id="question-dialog-template">
+    <mdui-dialog close-on-overlay-click class="dialog-question">
+        <span slot="headline">{{title.label}}</span>
+        <span slot="description">{{description.label}}</span>
+        <mdui-button slot="action" variant="text" id="question-dialog-deny-button">{{deny.label}}</mdui-button>
+        <mdui-button slot="action" variant="tonal" id="question-dialog-accept-button">{{accept.label}}</mdui-button>
+    </mdui-dialog>
 </template>
 
 </html>
