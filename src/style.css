@@ -10,9 +10,7 @@ mdui-text-field::part(icon) {
     padding-top: 40px;
 }
 
-#app-checkbox{
-    
-}
+/* #app-checkbox 已移除空白規則集 */
 
 mdui-card {
     box-shadow: none;
@@ -95,4 +93,70 @@ mdui-chip {
     opacity: 1;
     visibility: visible;
     z-index: 2;
+}
+
+/* 確保頁面和終端沒有轉場動畫 */
+.page {
+    width: 100%;
+}
+
+/* 防止任何元素有動畫效果 */
+#debug-terminal-area,
+#main-nav-bar,
+.page {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* 頁面與終端的轉場效果 */
+#debug-terminal-area {
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+#debug-terminal-area {
+    /* 沒有任何過渡效果 */
+}
+
+#debug-terminal-output {
+    font-family: 'Monaco', 'Consolas', monospace;
+    background-color: #0a0a0a;
+    scrollbar-width: thin;
+}
+
+#debug-terminal-output::-webkit-scrollbar {
+    width: 4px;
+}
+
+#debug-terminal-output::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#debug-terminal-output::-webkit-scrollbar-thumb {
+    background: rgba(100, 100, 100, 0.6);
+    border-radius: 4px;
+}
+
+#debug-terminal-input::part(container) {
+    background-color: #1a1a1a;
+    border-color: #333;
+}
+
+/* 確保所有MDUI元素在終端區域切換時不會有任何動畫 */
+mdui-navigation-bar {
+    transition: none !important;
+    animation: none !important;
+}
+
+#main-nav-bar {
+    transition: right 0.3s ease;
+}
+
+.terminal-input {
+    background-color: #1A1A1A;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.terminal-input:focus {
+    outline: none;
 }

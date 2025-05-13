@@ -46,16 +46,23 @@ function initADB() {
 }
 
 function createWindow() {
+    // 讀取配置判斷是否啟用調試模式
+    const config = readConfig();
+    const debugMode = config && config.debug_mode;
+
     const win = new BrowserWindow({
-        width: 500,
+        width: debugMode ? 900 : 500,
         height: 900,
         autoHideMenuBar: true,
-        resizable: false,
+        resizable: debugMode,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
         }
     });
+
+    // 將窗口对象存储为全局变量，以便後續可存取
+    global.mainWindow = win;
 
     win.webContents.openDevTools();
 
@@ -171,16 +178,37 @@ ipcMain.handle('get-config', async (event) => {
 });
 
 // set config
-ipcMain.handle('set-config', async (event, config) => {
+ipcMain.handle('set-config', async (event, key, value) => {
     const configPath = path.join(app.getPath('userData'), 'config.json');
 
-    console.log("[config] Config Path: ", configPath);
+    if (!fs.existsSync(configPath)) {
+        resetConfigToDefault();
+    }
 
+    const configData = fs.readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(configData);
+
+    config[key] = value;
+
+    // rewrite config
     fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf-8');
-    console.log("[config] Config file updated:", config);
+
+    console.log("[config] Config file", key, "updated:", value);
+    return config;
 });
 
 // reset config
 ipcMain.handle('reset-config', async (event) => {
     resetConfigToDefault();
+});
+
+// 調整視窗大小 (用於調試模式)
+ipcMain.handle('resize-window', async (event, enableDebug) => {
+    const win = global.mainWindow;
+    if (win) {
+        win.setSize(enableDebug ? 833 : 500, 900);
+        // win.setResizable(enableDebug);
+        return { success: true };
+    }
+    return { success: false };
 });

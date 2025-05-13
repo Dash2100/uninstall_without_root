@@ -13,6 +13,7 @@
     <script src="./scripts/settings.js" defer></script>
     <script src="./scripts/alert.js" defer></script>
     <script src="./scripts/func.js" defer></script>
+    <script src="./scripts/terminal.js" defer></script>
 
     <!-- mdui -->
     <script src="https://unpkg.com/mdui@2/mdui.global.js" defer></script>
@@ -47,9 +48,10 @@
         <!-- app title bar -->
         <mdui-top-app-bar class="relative">
             <mdui-top-app-bar-title class="ml-5 font-bold">應用程式管理</mdui-top-app-bar-title>
-            <mdui-button-icon icon="link" id="icon-connected" class="mx-5 hidden" onclick="getDevice();">
             </mdui-button-icon>
-            <mdui-button-icon icon="link_off" id="icon-disconnected" class="mx-5" onclick="getDevice();">
+            <mdui-button-icon icon="link" id="icon-connected" class="mx-1 hidden" onclick="getDevice();" title="已連接裝置">
+            </mdui-button-icon>
+            <mdui-button-icon icon="link_off" id="icon-disconnected" class="mx-1" onclick="getDevice();" title="尚未連接裝置">
             </mdui-button-icon>
         </mdui-top-app-bar>
 
@@ -64,6 +66,30 @@
         <div class="p-8 pt-3">
             <mdui-card class="flex flex-col overflow-auto app_list" id="app_list">
                 <!-- app list here -->
+                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center flex-1 min-w-0">
+                        <p class="text-lg truncate w-11/12">{{app.name}}</p>
+                        <p class="text-md text-gray-500">{{app.type}}</p>
+                    </div>
+                    <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
+                </mdui-card>
+                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center flex-1 min-w-0">
+                        <p class="text-lg truncate w-11/12">{{app.name}}</p>
+                        <p class="text-md text-gray-500">{{app.type}}</p>
+                    </div>
+                    <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
+                </mdui-card>
+                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center flex-1 min-w-0">
+                        <p class="text-lg truncate w-11/12">{{app.name}}</p>
+                        <p class="text-md text-gray-500">{{app.type}}</p>
+                    </div>
+                    <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
+                </mdui-card>
             </mdui-card>
         </div>
 
@@ -141,8 +167,8 @@
             </div>
         </div>
 
-        <!-- <mdui-fab icon="refresh" class="fixed bottom-32 right-6" onclick="getAppList();">Hello</mdui-fab> -->
-        <mdui-fab extended icon="refresh" class="fixed bottom-32 right-9" id="settings-reset">重置設定</mdui-fab>
+        <mdui-fab extended icon="refresh" class="fixed bottom-32 right-9 floating-pill"
+            id="settings-reset">重置設定</mdui-fab>
 
     </div>
 
@@ -184,13 +210,40 @@
     </div>
 
     <!-- navigation bar -->
-    <mdui-navigation-bar value="apps" class="fixed bottom-0 left-0 right-0 z-30">
+    <mdui-navigation-bar value="apps" class="fixed bottom-0 left-0 z-30" id="main-nav-bar"
+        style="transition: none !important;">
         <mdui-navigation-bar-item icon="build" value="apps"
             onclick="switchPage('appList')">程式列表</mdui-navigation-bar-item>
         <mdui-navigation-bar-item icon="tune" value="settings"
             onclick="switchPage('settings')">設定</mdui-navigation-bar-item>
         <mdui-navigation-bar-item icon="info" value="about" onclick="switchPage('about')">關於</mdui-navigation-bar-item>
     </mdui-navigation-bar>
+
+    <!-- debug terminal area -->
+    <div id="debug-terminal-area"
+        class="mdui-theme-dark fixed right-0 top-0 bottom-0 w-2/5 bg-black flex flex-col border-l border-gray-700"
+        style="display: none; z-index: 5;">
+        <mdui-top-app-bar style="position: relative;" class="mdui-theme-dark">
+            <mdui-top-app-bar-title class="ml-3">ADB Terminal</mdui-top-app-bar-title>
+            <div style="flex-grow: 1"></div>
+            <mdui-button-icon icon="cleaning_services" title="清除終端" onclick="clearTerminal()"></mdui-button-icon>
+        </mdui-top-app-bar>
+
+        <div id="debug-terminal-output" class="w-full flex-grow overflow-auto p-4 text-white font-mono text-sm"
+            style="white-space: pre-wrap;">
+        </div>
+
+        <mdui-divider style="background-color: #49454F;"></mdui-divider>
+
+        <!-- 命令輸入區 -->
+        <div class="w-full p-2 flex">
+            <input id="debug-terminal-input" class="flex-grow h-10 terminal-input text-white" variant="outlined"
+                placeholder="Type ADB command..." />
+            <mdui-button id="debug-terminal-submit" class="ml-2">執行</mdui-button>
+        </div>
+    </div>
+
+    <!-- ========== 被動元件 ========== -->
 
     <!-- confirm delete dialog -->
     <mdui-dialog close-on-overlay-click class="dialog-confirm-uninstall">

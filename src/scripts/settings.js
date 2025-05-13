@@ -23,13 +23,29 @@ function loadConfig() {
         // update theme
         if (!darkmode) {
             document.body.classList.remove('mdui-theme-dark');
+        } else {
+            document.body.classList.add('mdui-theme-dark');
+        }
+
+        // 處理調試模式
+        toggleTerminal(debug_mode);
+
+        // 如果啟用了調試模式，確保窗口大小正確
+        if (debug_mode) {
+            toggleTerminal(true);
+        } else {
+            toggleTerminal(false);
         }
     });
 }
 
-// function updateConfig() {
-
-// }
+function updateConfig(key, value) {
+    // 使用 window.updateConfig 而不是遞迴呼叫本地函數
+    return window.setConfig(key, value).then((response) => {
+        console.log('[config] Updated config:', response);
+        return response;
+    });
+}
 
 // language
 settingsLanguage.addEventListener('change', (event) => {
@@ -42,6 +58,7 @@ settingsLanguage.addEventListener('change', (event) => {
 
         return;
     }
+    updateConfig('language', selectedLanguage);
     appLang = selectedLanguage;
 });
 
@@ -49,6 +66,8 @@ settingsLanguage.addEventListener('change', (event) => {
 // darkmode
 settingsDarkMode.addEventListener('change', (event) => {
     const checked = event.target.checked;
+
+    updateConfig('darkmode', checked);
 
     if (checked) {
         document.body.classList.add('mdui-theme-dark');
@@ -61,12 +80,22 @@ settingsDarkMode.addEventListener('change', (event) => {
 settingsAppdata.addEventListener('change', (event) => {
     const checked = event.target.checked;
 
-    console.log('Appdata toggle:', checked);
+    updateConfig('delete_data', checked);
+});
+
+// debug mode
+settingsDebugMode.addEventListener('change', (event) => {
+    const checked = event.target.checked;
+
+    updateConfig('debug_mode', checked).then(() => {
+        window.resizeWindow(checked).then(() => {
+            toggleTerminal(checked);
+        });
+    });
 });
 
 settingsChAPKPath.addEventListener('click', async (event) => {
     try {
-
         // 選擇資料夾
         const result = await window.showOpenDialog({ // 直接使用 Node.js 整合的 API
             properties: ['openDirectory'],
@@ -76,7 +105,8 @@ settingsChAPKPath.addEventListener('click', async (event) => {
         // 檢查用戶是否選擇了資料夾
         if (!result.canceled && result.filePaths.length > 0) {
             const selectedPath = result.filePaths[0];
-            console.log("new path: ", selectedPath);
+
+            updateConfig('extrect_path', selectedPath);
 
             let truncatePath = truncateFilePath(selectedPath, 30);
 
@@ -95,7 +125,12 @@ resetSettingsButton.addEventListener('click', () => {
         acceptText: '清除',
         denyText: '取消',
         onAccept: () => {
-            window.resetConfig();
+            window.resetConfig().then(() => {
+                // 重置後調整窗口大小 (因為默認為非調試模式)
+                window.resizeWindow(false);
+                loadConfig();
+                showSnackAlert("設定已重置為預設值");
+            });
         }
     });
 });
@@ -133,5 +168,15 @@ function truncateFilePath(filePath, maxLength) {
 
     return keepBeginning + ellipsis + keepEnd;
 }
+
+// 當除錯模式開關狀態改變時
+document.addEventListener('DOMContentLoaded', () => {
+    const debugModeSwitch = document.getElementById('settings-debugmode');
+    if (debugModeSwitch) {
+        debugModeSwitch.addEventListener('change', (event) => {
+            toggleTerminal(event.target.checked);
+        });
+    }
+});
 
 loadConfig();

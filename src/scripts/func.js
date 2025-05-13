@@ -4,6 +4,8 @@ const dialogAppInfo = document.querySelector(".dialog-appinfo");
 const dialogDeleteApp = document.querySelector(".dialog-delete-app");
 const dialogADBResponse = document.querySelector(".dialog-adb-response");
 
+const floatingPill = document.getElementsByClassName('floating-pill')[0];
+
 // icon
 const iconConnected = document.getElementById('icon-connected');
 const iconDisconnected = document.getElementById('icon-disconnected');
@@ -194,9 +196,10 @@ const getAppList = () => {
         });
 };
 
+
 const initApp = () => {
-    // init pqage
-    switchPage('settings');
+    // 初始化頁面
+    switchPage('appList');
 
     // 免責聲明
     // dialogWarning.open = true;
