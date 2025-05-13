@@ -8,7 +8,7 @@ const settingsChAPKPathText = document.getElementById('settings-extract-path');
 const resetSettingsButton = document.getElementById('settings-reset');
 
 function loadConfig() {
-    window.electronAPI.getConfig().then((response) => {
+    window.getConfig().then((response) => {
         const { language, darkmode, delete_data, debug_mode, extrect_path } = response;
         console.log('[config] Loaded config:', response);
         console.log(language, darkmode, delete_data, debug_mode, extrect_path);
@@ -68,7 +68,7 @@ settingsChAPKPath.addEventListener('click', async (event) => {
     try {
 
         // 選擇資料夾
-        const result = await window.electronAPI.showOpenDialog({ // preload 裡面的 API
+        const result = await window.showOpenDialog({ // 直接使用 Node.js 整合的 API
             properties: ['openDirectory'],
             title: '選擇資料夾位置'
         });
@@ -76,14 +76,14 @@ settingsChAPKPath.addEventListener('click', async (event) => {
         // 檢查用戶是否選擇了資料夾
         if (!result.canceled && result.filePaths.length > 0) {
             const selectedPath = result.filePaths[0];
-            console.log('用戶選擇的資料夾路徑:', selectedPath);
+            console.log("new path: ", selectedPath);
 
             let truncatePath = truncateFilePath(selectedPath, 30);
 
             settingsChAPKPathText.innerText = truncatePath;
         }
     } catch (err) {
-        console.error('選擇文件時發生錯誤:', err);
+        console.error('Error selecting folder:', err);
     }
 });
 
@@ -95,7 +95,7 @@ resetSettingsButton.addEventListener('click', () => {
         acceptText: '清除',
         denyText: '取消',
         onAccept: () => {
-            // electronAPI.resetConfig();
+            window.resetConfig();
         }
     });
 });
