@@ -50,8 +50,10 @@ function createWindow() {
         width: 500,
         height: 900,
         autoHideMenuBar: true,
+        resizable: false,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+            nodeIntegration: true,
+            contextIsolation: false
         }
     });
 

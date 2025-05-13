@@ -84,7 +84,7 @@ const getDevice = () => {
     iconConnected.classList.add('hidden');
     iconDisconnected.classList.remove('hidden');
 
-    const devices = window.electronAPI.executeAdbCommand('devices');
+    const devices = window.executeAdbCommand('devices');
     devices.then((response) => {
         console.log('[adb] Response:', response);
         if (response.includes('List of devices attached')) {
@@ -138,7 +138,7 @@ const getAppList = () => {
     }
 
     // 獲取應用列表
-    return window.electronAPI.executeAdbCommand('shell pm list packages -f')
+    return window.executeAdbCommand('shell pm list packages -f')
         .then((response) => {
             const lines = response.trim().split('\n');
 
