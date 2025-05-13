@@ -207,7 +207,7 @@ ipcMain.handle('resize-window', async (event, enableDebug) => {
     const win = global.mainWindow;
     if (win) {
         win.setSize(enableDebug ? 833 : 500, 900);
-        // win.setResizable(enableDebug);
+        win.setResizable(enableDebug);
         return { success: true };
     }
     return { success: false };

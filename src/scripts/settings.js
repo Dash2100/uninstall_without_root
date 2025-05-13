@@ -27,9 +27,6 @@ function loadConfig() {
             document.body.classList.add('mdui-theme-dark');
         }
 
-        // 處理調試模式
-        toggleTerminal(debug_mode);
-
         // 如果啟用了調試模式，確保窗口大小正確
         if (debug_mode) {
             toggleTerminal(true);

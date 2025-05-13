@@ -5,6 +5,11 @@ const terminalInput = document.getElementById('debug-terminal-input');
 
 let terminalOutput;
 
+// 初始化终端输出区域
+function initTerminal() {
+    terminalOutput = document.getElementById('debug-terminal-output');
+}
+
 function toggleTerminal(show) {
     const pages = document.querySelectorAll('.page');
 
@@ -85,4 +90,9 @@ function executeTerminalCommand(command) {
 debugTerminalSubmit.addEventListener('click', () => {
     const command = terminalInput.value.trim();
     executeTerminalCommand(command);
+});
+
+// 在页面加载后初始化终端
+document.addEventListener('DOMContentLoaded', () => {
+    initTerminal();
 });
