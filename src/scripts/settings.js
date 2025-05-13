@@ -76,14 +76,14 @@ settingsChAPKPath.addEventListener('click', async (event) => {
         // 檢查用戶是否選擇了資料夾
         if (!result.canceled && result.filePaths.length > 0) {
             const selectedPath = result.filePaths[0];
-            console.log('用戶選擇的資料夾路徑:', selectedPath);
+            console.log("new path: ", selectedPath);
 
             let truncatePath = truncateFilePath(selectedPath, 30);
 
             settingsChAPKPathText.innerText = truncatePath;
         }
     } catch (err) {
-        console.error('選擇文件時發生錯誤:', err);
+        console.error('Error selecting folder:', err);
     }
 });
 
