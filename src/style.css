@@ -100,10 +100,9 @@ mdui-chip {
     width: 100%;
 }
 
-/* 防止任何元素有動畫效果 */
+/* 只對終端區域和導航欄禁用動畫效果 */
 #debug-terminal-area,
-#main-nav-bar,
-.page {
+#main-nav-bar {
     transition: none !important;
     animation: none !important;
 }
@@ -111,10 +110,6 @@ mdui-chip {
 /* 頁面與終端的轉場效果 */
 #debug-terminal-area {
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
-}
-
-#debug-terminal-area {
-    /* 沒有任何過渡效果 */
 }
 
 #debug-terminal-output {

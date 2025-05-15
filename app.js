@@ -2,6 +2,9 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 
 const { exec } = require('child_process');
 
+// auto reloader
+// require('electron-reloader')(module);
+
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -12,15 +15,32 @@ function getAdbPath() {
     const platform = os.platform();
     const arch = os.arch();
 
+    // 判斷是開發環境還是已打包的生產環境
+    const isPackaged = app.isPackaged;
+
+    // 獲取基本路徑 - 開發時使用 __dirname，打包後使用 app.getAppPath()
+    const basePath = isPackaged
+        ? path.join(process.resourcesPath, 'app.asar.unpacked')
+        : __dirname;
+
     if (platform === 'darwin') {
         if (arch === 'arm64') { // MacOS
-            return path.join(__dirname, 'adb', 'mac-arm64', 'adb');
+            return path.join(basePath, 'adb', 'mac-arm64', 'adb');
+        } else if (arch === 'x64') { // 加入 Intel Mac 支援
+            return path.join(basePath, 'adb', 'mac-x64', 'adb');
         }
     } else if (platform === 'win32') { // Windows
-        return path.join(__dirname, 'adb', 'win-x64', 'adb.exe');
-    } else {
-        return "N/A";
+        return path.join(basePath, 'adb', 'win-x64', 'adb.exe');
+    } else if (platform === 'linux') { // 加入 Linux 支援
+        if (arch === 'x64') {
+            return path.join(basePath, 'adb', 'linux-x64', 'adb');
+        } else if (arch === 'arm64') {
+            return path.join(basePath, 'adb', 'linux-arm64', 'adb');
+        }
     }
+
+    console.error(`Unsupported platform: ${platform} ${arch}`);
+    return "N/A";
 }
 
 // set adb file permission to executable
@@ -51,10 +71,10 @@ function createWindow() {
     const debugMode = config && config.debug_mode;
 
     const win = new BrowserWindow({
-        width: debugMode ? 900 : 500,
+        width: debugMode ? 833 : 500,
         height: 900,
         autoHideMenuBar: true,
-        resizable: debugMode,
+        resizable: 1,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -64,7 +84,7 @@ function createWindow() {
     // 將窗口对象存储为全局变量，以便後續可存取
     global.mainWindow = win;
 
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
 
     win.loadFile("./src/index.html");
 }
@@ -207,7 +227,6 @@ ipcMain.handle('resize-window', async (event, enableDebug) => {
     const win = global.mainWindow;
     if (win) {
         win.setSize(enableDebug ? 833 : 500, 900);
-        win.setResizable(enableDebug);
         return { success: true };
     }
     return { success: false };

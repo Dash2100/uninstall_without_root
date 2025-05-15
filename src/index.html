@@ -10,10 +10,12 @@
     <script src="./script.js"></script>
 
     <!-- app script -->
+    <script src="./scripts/adb.js" defer></script>
     <script src="./scripts/settings.js" defer></script>
     <script src="./scripts/alert.js" defer></script>
-    <script src="./scripts/func.js" defer></script>
     <script src="./scripts/terminal.js" defer></script>
+    <script src="./scripts/pages.js" defer></script>
+    <script src="./scripts/func.js" defer></script>
 
     <!-- mdui -->
     <script src="https://unpkg.com/mdui@2/mdui.global.js" defer></script>
@@ -64,37 +66,13 @@
 
         <!-- content -->
         <div class="p-8 pt-3">
-            <mdui-card class="flex flex-col overflow-auto app_list" id="app_list">
+            <mdui-card class="flex flex-col overflow-auto app_list pb-16" id="app_list">
                 <!-- app list here -->
-                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
-                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
-                    <div class="flex flex-col justify-center flex-1 min-w-0">
-                        <p class="text-lg truncate w-11/12">{{app.name}}</p>
-                        <p class="text-md text-gray-500">{{app.type}}</p>
-                    </div>
-                    <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
-                </mdui-card>
-                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
-                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
-                    <div class="flex flex-col justify-center flex-1 min-w-0">
-                        <p class="text-lg truncate w-11/12">{{app.name}}</p>
-                        <p class="text-md text-gray-500">{{app.type}}</p>
-                    </div>
-                    <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
-                </mdui-card>
-                <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
-                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
-                    <div class="flex flex-col justify-center flex-1 min-w-0">
-                        <p class="text-lg truncate w-11/12">{{app.name}}</p>
-                        <p class="text-md text-gray-500">{{app.type}}</p>
-                    </div>
-                    <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
-                </mdui-card>
             </mdui-card>
         </div>
 
         <!-- floating action button -->
-        <mdui-fab icon="refresh" class="fixed bottom-32 right-6" onclick="getAppList();"></mdui-fab>
+        <mdui-fab icon="refresh" class="fixed bottom-28 right-14 floating-pill" id="button-applist-refresh"></mdui-fab>
 
     </div>
 
@@ -167,7 +145,7 @@
             </div>
         </div>
 
-        <mdui-fab extended icon="refresh" class="fixed bottom-32 right-9 floating-pill"
+        <mdui-fab extended icon="refresh" class="fixed bottom-28 right-14 floating-pill"
             id="settings-reset">重置設定</mdui-fab>
 
     </div>
@@ -225,12 +203,13 @@
         style="display: none; z-index: 5;">
         <mdui-top-app-bar style="position: relative;" class="mdui-theme-dark">
             <mdui-top-app-bar-title class="ml-3">ADB Terminal</mdui-top-app-bar-title>
-            <div style="flex-grow: 1"></div>
-            <mdui-button-icon icon="cleaning_services" title="清除終端" onclick="clearTerminal()"></mdui-button-icon>
+            <div style="flex-grow: 1" class=""></div>
+            <mdui-button-icon icon="cleaning_services" title="清除終端" onclick="clearTerminal()"
+                class="mx-3"></mdui-button-icon>
         </mdui-top-app-bar>
 
-        <div id="debug-terminal-output" class="w-full flex-grow overflow-auto p-4 text-white font-mono text-sm"
-            style="white-space: pre-wrap;">
+        <div id="debug-terminal-output"
+            class="flex-grow p-4 text-white font-mono text-sm whitespace-pre-wrap overflow-auto break-words w-full select-text">
         </div>
 
         <mdui-divider style="background-color: #49454F;"></mdui-divider>
@@ -239,11 +218,31 @@
         <div class="w-full p-2 flex">
             <input id="debug-terminal-input" class="flex-grow h-10 terminal-input text-white" variant="outlined"
                 placeholder="Type ADB command..." />
-            <mdui-button id="debug-terminal-submit" class="ml-2">執行</mdui-button>
+            <mdui-button-icon id="debug-terminal-submit" class="ml-2" variant="tonal"
+                icon="keyboard_return"></mdui-button-icon>
         </div>
     </div>
 
     <!-- ========== 被動元件 ========== -->
+
+    <!-- delete app dialog -->
+    <mdui-dialog close-on-overlay-click class="dialog-delete-app">
+        <span slot="headline">刪除應用程式</span>
+        <span slot="description">
+            <div class="flex flex-col gap-3">
+                <p>您確定要刪除應用程式 <span id="delete-app-name" class="font-medium">com.android.vending</span> 嗎？</p>
+
+                <p class="text-yellow-600 font-bold">注意：請不要刪除系統必要應用程式，否則可能會導致系統不穩定或無法啟動。</p>
+
+                <div class="flex items-center gap-2 mt-2">
+                    <mdui-checkbox id="delete-app-data">同時刪除APP資料</mdui-checkbox>
+                </div>
+            </div>
+        </span>
+        <mdui-button slot="action" variant="text"
+            onclick="document.querySelector('.dialog-delete-app').open = false">取消</mdui-button>
+        <mdui-button id="confirm-delete-btn" slot="action" variant="filled" color="error">確認刪除</mdui-button>
+    </mdui-dialog>
 
     <!-- confirm delete dialog -->
     <mdui-dialog close-on-overlay-click class="dialog-confirm-uninstall">
@@ -272,6 +271,31 @@
         <mdui-button slot="action" variant="tonal" onclick="dialogWarning.open = false;">確定</mdui-button>
     </mdui-dialog>
 
+    <!-- info snackbar -->
+    <mdui-snackbar class="snackbar-connected mb-20" id="snackbar-alert" auto-close-delay="2500"></mdui-snackbar>
+</body>
+
+<template id="app-card-template">
+    <mdui-card clickable variant="elevated" class="app-card w-full h-20 flex rounded-none"
+        data-package-name="{{app.packageName}}">
+        <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+        <div class="flex flex-col justify-center flex-1 min-w-0">
+            <p class="text-lg truncate w-11/12">{{app.packageName}}</p>
+            <p class="text-md text-gray-500">{{app.type}}</p>
+        </div>
+    </mdui-card>
+</template>
+
+<template id="question-dialog-template">
+    <mdui-dialog close-on-overlay-click class="dialog-question">
+        <span slot="headline">{{title.label}}</span>
+        <span slot="description">{{description.label}}</span>
+        <mdui-button slot="action" variant="text" id="question-dialog-deny-button">{{deny.label}}</mdui-button>
+        <mdui-button slot="action" variant="tonal" id="question-dialog-accept-button">{{accept.label}}</mdui-button>
+    </mdui-dialog>
+</template>
+
+<template id="app-info-template">
     <!-- appinfo dialog -->
     <mdui-dialog close-on-overlay-click class="dialog-appinfo">
         <mdui-top-app-bar slot="header">
@@ -280,10 +304,10 @@
         </mdui-top-app-bar>
         <span slot="description">
             <div class="flex flex-col gap-2">
-                <p>APP包名: <span id="app-package">com.android.vending</span></p>
-                <p>APP版本: <span id="app-version">7.56.0</span></p>
-                <p>最後更新: <span id="app-size">2025-04-26 17:19:49</span></p>
-                <p>啟用狀態: <span id="app-status">啟用中</span></p>
+                <p>APP包名: {{app.packageName}}</p>
+                <p>APP版本: {{app.version}}</p>
+                <p>最後更新: {{app.latestUpdate}}</p>
+                <p>啟用狀態: {{app.isEnable}}</p>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">
@@ -298,62 +322,6 @@
                     onclick="uninstallApp(1);">刪除</mdui-button>
             </div>
         </div>
-    </mdui-dialog>
-
-    <!-- delete app dialog -->
-    <mdui-dialog close-on-overlay-click class="dialog-delete-app">
-        <span slot="headline">刪除應用程式</span>
-        <span slot="description">
-            <div class="flex flex-col gap-3">
-                <p>您確定要刪除應用程式 <span id="delete-app-name" class="font-medium">com.android.vending</span> 嗎？</p>
-
-                <p class="text-yellow-600 font-bold">注意：請不要刪除系統必要應用程式，否則可能會導致系統不穩定或無法啟動。</p>
-
-                <div class="flex items-center gap-2 mt-2">
-                    <mdui-checkbox id="delete-app-data">同時刪除APP資料</mdui-checkbox>
-                </div>
-            </div>
-        </span>
-        <mdui-button slot="action" variant="text"
-            onclick="document.querySelector('.dialog-delete-app').open = false">取消</mdui-button>
-        <mdui-button id="confirm-delete-btn" slot="action" variant="filled" color="error">確認刪除</mdui-button>
-    </mdui-dialog>
-
-    <!-- adb response dialog -->
-    <mdui-dialog close-on-overlay-click class="dialog-adb-response">
-        <span slot="headline" class="w-screen">ADB 回應</span>
-        <span slot="description">
-            <div class="flex flex-col gap-3">
-                <p>回應內容：</p>
-                <p id="adb-response" class="text-gray-500">Package com.quicinc.voice.activation new state: disabled-user
-                </p>
-            </div>
-        </span>
-        <mdui-button slot="action" variant="text"
-            onclick="document.querySelector('.dialog-adb-response').open = false">關閉</mdui-button>
-    </mdui-dialog>
-
-    <!-- info snackbar -->
-    <mdui-snackbar class="snackbar-connected mb-20" id="snackbar-alert" auto-close-delay="2500"></mdui-snackbar>
-</body>
-
-<template id="app-card-template">
-    <mdui-card clickable variant="elevated" class="w-full h-20 flex rounded-none">
-        <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
-        <div class="flex flex-col justify-center flex-1 min-w-0">
-            <p class="text-lg truncate w-11/12">{{app.name}}</p>
-            <p class="text-md text-gray-500">{{app.type}}</p>
-        </div>
-        <!-- <mdui-button-icon variant="tonal" class="my-auto ml-auto mr-6" icon="info"></mdui-button-icon> -->
-    </mdui-card>
-</template>
-
-<template id="question-dialog-template">
-    <mdui-dialog close-on-overlay-click class="dialog-question">
-        <span slot="headline">{{title.label}}</span>
-        <span slot="description">{{description.label}}</span>
-        <mdui-button slot="action" variant="text" id="question-dialog-deny-button">{{deny.label}}</mdui-button>
-        <mdui-button slot="action" variant="tonal" id="question-dialog-accept-button">{{accept.label}}</mdui-button>
     </mdui-dialog>
 </template>
 

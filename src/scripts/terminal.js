@@ -3,10 +3,13 @@ const navBar = document.getElementById('main-nav-bar');
 const debugTerminalSubmit = document.getElementById('debug-terminal-submit');
 const terminalInput = document.getElementById('debug-terminal-input');
 
+const floatingPill = document.getElementsByClassName('floating-pill');
+
 let terminalOutput;
 
 // 初始化终端输出区域
 function initTerminal() {
+    clearTerminal();
     terminalOutput = document.getElementById('debug-terminal-output');
 }
 
@@ -21,7 +24,12 @@ function toggleTerminal(show) {
         terminal.style.display = 'flex';
         navBar.style.right = '40%';
         navBar.style.width = '60%';
-        floatingPill.style.right = '369px';
+
+        // apply for all floating pills
+        for (let i = 0; i < floatingPill.length; i++) {
+            floatingPill[i].style.right = '369px';
+        }
+
         pages.forEach(page => {
             page.style.width = '60%';
         });
@@ -29,7 +37,11 @@ function toggleTerminal(show) {
         terminal.style.display = 'none';
         navBar.style.right = '0';
         navBar.style.width = '100%';
-        floatingPill.style.right = '36px';
+
+        for (let i = 0; i < floatingPill.length; i++) {
+            floatingPill[i].style.right = '36px';
+        }
+
         pages.forEach(page => {
             page.style.width = '100%';
         });
@@ -76,13 +88,33 @@ function executeTerminalCommand(command) {
 
     appendToTerminal(`> ${command}`, 'command');
 
+    // if command starts with "adb"
+    if (command.startsWith('adb')) {
+        command = command.replace('adb ', '');
+    }
+
+    if (command === 'clear' || command === 'cls') {
+        clearTerminal();
+        return;
+    }
+
+    if (command == 'shell') {
+        appendToTerminal('ADB shell not supported', 'error');
+        return;
+    }
+
     // execute ADB command
     window.executeAdbCommand(command)
         .then(response => {
-            appendToTerminal(response || '(無輸出)');
+            appendToTerminal(response || '(No output)', 'response');
         })
         .catch(error => {
-            appendToTerminal(`錯誤: ${error}`, 'error');
+            // parse error message
+            const errorMessage = error.toString();
+            const errorLines = errorMessage.split('\n');
+            const errorCode = errorLines[1].trim();
+
+            appendToTerminal(`${errorCode}`, 'error');
         });
 }
 
@@ -95,4 +127,13 @@ debugTerminalSubmit.addEventListener('click', () => {
 // 在页面加载后初始化终端
 document.addEventListener('DOMContentLoaded', () => {
     initTerminal();
+});
+
+// listen for enter key press on terminal input
+terminalInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const command = terminalInput.value.trim();
+        executeTerminalCommand(command);
+    }
 });
