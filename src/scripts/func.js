@@ -1,5 +1,7 @@
 const { app } = require("electron");
 
+const appLoading = document.getElementById('app-loading');
+
 const dialogConfirmUninstall = document.querySelector(".dialog-confirm-uninstall");
 const dialogWarning = document.querySelector(".dialog-warning");
 const dialogAppInfo = document.querySelector(".dialog-appinfo");
@@ -11,6 +13,19 @@ const iconDisconnected = document.getElementById('icon-disconnected');
 
 // button
 const buttonApplistRefresh = document.getElementById('button-applist-refresh');
+
+// applist container
+const appListContainer = document.getElementById('app-list-content');
+const appListLoadingPlaceholder = document.getElementById('app-list-loading');
+const appListConnectPlaceholder = document.getElementById('app-list-disconnected');
+
+// applist holder
+const appListHolder = document.getElementById('app-list-holder');
+const appListLoading = document.getElementById('app-list-loading');
+
+// search
+const searchInput = document.getElementById('search-input');
+const searchButton = document.getElementById('search-button');
 
 // ==================== Local States ====================
 let isConnected = false;
@@ -40,7 +55,12 @@ const createAppCard = (app, appType) => {
 };
 
 const updateAppList = (apps) => {
-    const appListContainer = document.getElementById('app_list');
+    // 隱藏佔位元素
+    appListLoadingPlaceholder.style.display = 'none';
+    appListConnectPlaceholder.style.display = 'none';
+
+    // 顯示內容區域
+    appListContainer.style.display = 'block';
 
     const fragment = document.createDocumentFragment();
 
@@ -58,7 +78,17 @@ const updateAppList = (apps) => {
     appListContainer.appendChild(fragment);
 };
 
-// ==================== ADB Commands ====================
+const clearAppList = () => {
+    // 清除應用列表內容
+    appListContainer.innerHTML = '';
+
+    // 隱藏內容區域和載入中佔位元素
+    appListContainer.style.display = 'none';
+    appListLoadingPlaceholder.style.display = 'none';
+
+    // 顯示連接裝置佔位元素
+    appListConnectPlaceholder.style.display = 'flex';
+}
 
 const getDevice = () => {
     isConnected = false;
@@ -92,6 +122,7 @@ const getDevice = () => {
 
                 if (deviceStatus !== "device") {
                     showSnackAlert("連接到設備: " + deviceId + " 失敗，目前狀態: " + deviceStatus);
+                    clearAppList();
                     return;
                 }
 
@@ -109,6 +140,7 @@ const getDevice = () => {
                 getDisabledApps();
 
             } else {
+                clearAppList();
                 showSnackAlert("無法連接到設備");
             }
         })
@@ -125,6 +157,11 @@ const getAppList = () => {
         showSnackAlert("請先連接到設備");
         return;
     }
+
+    // 顯示載入中
+    appListConnectPlaceholder.style.display = 'none';
+    appListContainer.style.display = 'none';
+    appListLoadingPlaceholder.style.display = 'flex';
 
     // 獲取應用列表
     return runADBcommand('shell pm list packages -f')
@@ -178,7 +215,6 @@ const getAppList = () => {
         .catch((error) => {
             console.error('[adb] Get App List Error:', error);
             // clear app list
-            const appListContainer = document.getElementById('app_list');
             appListContainer.innerHTML = '';
 
             // show error message
@@ -371,13 +407,54 @@ buttonApplistRefresh.addEventListener('click', () => {
     getAppList();
 });
 
+// search button
+searchButton.addEventListener('click', () => {
+    const searchValue = searchInput.value.trim();
+
+    if (searchValue) {
+        // filter apps
+        const filteredApps = {
+            apps: {
+                user: {},
+                system: {}
+            }
+        };
+
+        Object.keys(appsList.apps.user).forEach(key => {
+            if (key.includes(searchValue)) {
+                filteredApps.apps.user[key] = appsList.apps.user[key];
+            }
+        });
+
+        Object.keys(appsList.apps.system).forEach(key => {
+            if (key.includes(searchValue)) {
+                filteredApps.apps.system[key] = appsList.apps.system[key];
+            }
+        });
+
+        updateAppList(filteredApps);
+    } else {
+        updateAppList(appsList);
+    }
+});
+
+const confirmWarning = () => {
+    dialogWarning.open = false;
+
+    // 初始化列表
+    clearAppList();
+
+    // 取得設備
+    getDevice();
+}
+
 const initApp = () => {
+    // 隱藏載入畫面
+    appLoading.classList.remove('app-loading-showing');
+
     // 初始化頁面
     switchPage('appList');
 
     // 免責聲明
-    // dialogWarning.open = true;
-
-    // 取得設備
-    getDevice();
+    dialogWarning.open = true;
 };

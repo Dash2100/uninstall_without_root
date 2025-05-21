@@ -7,7 +7,7 @@
     <meta name="renderer" content="webkit" />
 
     <!-- Node.js integration script -->
-    <script src="./script.js"></script>
+    <script src="./scripts/integration.js"></script>
 
     <!-- app script -->
     <script src="./scripts/adb.js" defer></script>
@@ -18,21 +18,17 @@
     <script src="./scripts/func.js" defer></script>
 
     <!-- mdui -->
-    <script src="https://unpkg.com/mdui@2/mdui.global.js" defer></script>
-    <link rel="stylesheet" href="https://unpkg.com/mdui@2/mdui.css">
+    <script src="./scripts/mdui.global.js" defer></script>
+    <link rel="stylesheet" href="./style/mdui.css">
 
     <!-- icon -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> <!-- Filled -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"> <!-- Outlined -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"> <!-- Rounded -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet"> <!-- Sharp -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Two+Tone" rel="stylesheet"> <!-- Two Tone -->
+    <link rel="stylesheet" href="./style/font.css">
 
     <!-- tailwindcss -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./style/tailwind.min.css">
 
     <!-- main CSS -->
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./style/main.css">
 
     <title>解除安裝原廠應用程式免ROOT</title>
 </head>
@@ -40,9 +36,9 @@
 <body class="mdui-theme-dark w-screen h-screen select-none overflow-hidden" onload="initApp()">
 
     <!-- app loading overlay -->
-    <!-- <mdui-card variant="elevated"
-        class="loading-card fixed top-0 left-0 right-0 bottom-0 m-auto w-screen h-screen flex flex-col justify-center items-center rounded-none z-50">
-    </mdui-card> -->
+    <!-- fullscreen div -->
+    <div id="app-loading" class="app-loading app-loading-showing">
+    </div>
 
     <!-- page-1 appList -->
     <div id="appList" class="page">
@@ -60,14 +56,31 @@
         <!-- search bar -->
         <div class="w-full flex gap-3 justify-center items-center py-4">
             <mdui-text-field icon="search" label="查詢應用程式"
-                class="w-9/12 max-w-2xl rounded-full overflow-hidden shadow-none"></mdui-text-field>
-            <mdui-button-icon variant="filled" icon="search" class="h-12 w-12"></mdui-button-icon>
+                class="w-9/12 max-w-2xl rounded-full overflow-hidden shadow-none" id="search-input">
+            </mdui-text-field>
+            <mdui-button-icon variant="filled" icon="search" class="h-12 w-12" id="search-button"></mdui-button-icon>
         </div>
 
         <!-- content -->
-        <div class="p-8 pt-3">
-            <mdui-card class="flex flex-col overflow-auto app_list pb-16" id="app_list">
-                <!-- app list here -->
+        <div class="p-8 px-5 pt-3 h-[calc(100vh-180px)] flex flex-col">
+            <mdui-card class="flex flex-col overflow-auto app_list pb-16 h-full w-full" id="app-list">
+                <!-- 應用程式載入中提示 -->
+                <div class="flex flex-col justify-center items-center h-full w-full pt-8" id="app-list-loading"
+                    style="display: none;">
+                    <mdui-circular-progress class="mx-auto my-5"></mdui-circular-progress>
+                    <p class="text-center">正在載入應用程式列表...</p>
+                </div>
+
+                <!-- 連接裝置提示 -->
+                <div class="flex flex-col justify-center items-center h-full w-full pt-8" id="app-list-disconnected">
+                    <mdui-icon name="link_off" class="text-6xl mx-auto my-5"></mdui-icon>
+                    <p class="text-center text-2xl">請連接裝置</p>
+                </div>
+
+                <!-- 應用程式列表內容 -->
+                <div class="w-full" id="app-list-content">
+                    <!-- app list items will be added here by JavaScript -->
+                </div>
             </mdui-card>
         </div>
 
@@ -162,8 +175,8 @@
         <div class="p-8 pt-3">
             <div class="flex flex-col gap-4">
                 <mdui-card class="w-full flex flex-col p-8 gap-5">
-                    <mdui-avatar class="mx-auto w-28 h-28"
-                        src="https://avatars.githubusercontent.com/u/87257550?v=4"></mdui-avatar>
+                    <!-- <mdui-avatar class="mx-auto w-28 h-28"
+                        src="https://avatars.githubusercontent.com/u/87257550?v=4"></mdui-avatar> -->
                     <div class="flex flex-col justify-center gap-2">
                         <p class="text-lg text-center font-bold">解除安裝原廠應用程式免ROOT</p>
                         <p class="text-md text-gray-500 text-center">
@@ -268,7 +281,7 @@
                 注意：部分中國手機無法支援！
             </span>
         </span>
-        <mdui-button slot="action" variant="tonal" onclick="dialogWarning.open = false;">確定</mdui-button>
+        <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">確定</mdui-button>
     </mdui-dialog>
 
     <!-- info snackbar -->

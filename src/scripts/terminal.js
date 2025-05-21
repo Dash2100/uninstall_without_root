@@ -79,6 +79,11 @@ function appendToTerminal(text, type = 'response') {
 
     terminalOutput.appendChild(newOutput);
     terminalOutput.scrollTop = terminalOutput.scrollHeight;
+
+    // scroll to bottom
+    terminal.scrollTop = terminal.scrollHeight;
+    terminalInput.scrollTop = terminalInput.scrollHeight;
+    terminalInput.focus();
 }
 
 // 執行終端命令

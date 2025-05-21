@@ -71,10 +71,10 @@ function createWindow() {
     const debugMode = config && config.debug_mode;
 
     const win = new BrowserWindow({
-        width: debugMode ? 833 : 500,
+        width: 850,
         height: 900,
+        resizable: false,
         autoHideMenuBar: true,
-        resizable: 1,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -83,6 +83,9 @@ function createWindow() {
 
     // 將窗口对象存储为全局变量，以便後續可存取
     global.mainWindow = win;
+
+    win.setBackgroundColor("#0f0f0f");
+    win.setTitle("解除安裝原廠應用程式免ROOT");
 
     // win.webContents.openDevTools();
 
@@ -220,14 +223,4 @@ ipcMain.handle('set-config', async (event, key, value) => {
 // reset config
 ipcMain.handle('reset-config', async (event) => {
     resetConfigToDefault();
-});
-
-// 調整視窗大小 (用於調試模式)
-ipcMain.handle('resize-window', async (event, enableDebug) => {
-    const win = global.mainWindow;
-    if (win) {
-        win.setSize(enableDebug ? 833 : 500, 900);
-        return { success: true };
-    }
-    return { success: false };
 });

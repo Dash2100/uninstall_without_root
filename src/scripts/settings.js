@@ -85,9 +85,7 @@ settingsDebugMode.addEventListener('change', (event) => {
     const checked = event.target.checked;
 
     updateConfig('debug_mode', checked).then(() => {
-        window.resizeWindow(checked).then(() => {
-            toggleTerminal(checked);
-        });
+        toggleTerminal(checked);
     });
 });
 
@@ -123,8 +121,6 @@ resetSettingsButton.addEventListener('click', () => {
         denyText: '取消',
         onAccept: () => {
             window.resetConfig().then(() => {
-                // 重置後調整窗口大小 (因為默認為非調試模式)
-                window.resizeWindow(false);
                 loadConfig();
                 showSnackAlert("設定已重置為預設值");
             });

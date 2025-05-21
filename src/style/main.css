@@ -10,8 +10,6 @@ mdui-text-field::part(icon) {
     padding-top: 40px;
 }
 
-/* #app-checkbox 已移除空白規則集 */
-
 mdui-card {
     box-shadow: none;
 }
@@ -24,9 +22,9 @@ mdui-card {
     flex-direction: column;
 }
 
-/* Material Design 細型滾動條樣式 */
 .app_list::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+    transition: width 0.3s ease;
 }
 
 .app_list::-webkit-scrollbar-track {
@@ -41,6 +39,11 @@ mdui-card {
 
 .app_list::-webkit-scrollbar-thumb:hover {
     background: rgba(128, 128, 128, 0.7);
+    width: 8px;
+}
+
+.app_list:hover::-webkit-scrollbar {
+    width: 8px;
 }
 
 .app_list>mdui-card {
@@ -72,12 +75,16 @@ mdui-chip {
 
 /* 為所有頁面添加相同的滾動條樣式 */
 .page::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+    /* 增加滾動條寬度 */
+    transition: width 0.3s ease;
+    /* 添加過渡效果 */
 }
 
 .page::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
+    transition: all .3s ease-in-out;
 }
 
 .page::-webkit-scrollbar-thumb {
@@ -89,25 +96,26 @@ mdui-chip {
     background: rgba(128, 128, 128, 0.7);
 }
 
+.page:hover::-webkit-scrollbar {
+    width: 8px;
+}
+
 .page.active {
     opacity: 1;
     visibility: visible;
     z-index: 2;
 }
 
-/* 確保頁面和終端沒有轉場動畫 */
 .page {
     width: 100%;
 }
 
-/* 只對終端區域和導航欄禁用動畫效果 */
 #debug-terminal-area,
 #main-nav-bar {
     transition: none !important;
     animation: none !important;
 }
 
-/* 頁面與終端的轉場效果 */
 #debug-terminal-area {
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
 }
@@ -119,7 +127,8 @@ mdui-chip {
 }
 
 #debug-terminal-output::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+    transition: width 0.3s ease;
 }
 
 #debug-terminal-output::-webkit-scrollbar-track {
@@ -131,12 +140,15 @@ mdui-chip {
     border-radius: 4px;
 }
 
+#debug-terminal-output:hover::-webkit-scrollbar {
+    width: 8px;
+}
+
 #debug-terminal-input::part(container) {
     background-color: #1a1a1a;
     border-color: #333;
 }
 
-/* 確保所有MDUI元素在終端區域切換時不會有任何動畫 */
 mdui-navigation-bar {
     transition: none !important;
     animation: none !important;
@@ -154,4 +166,25 @@ mdui-navigation-bar {
 
 .terminal-input:focus {
     outline: none;
+}
+
+.app-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #0f0f0f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.3s ease;
+}
+
+.app-loading-showing {
+    opacity: 1;
+    visibility: visible;
 }
