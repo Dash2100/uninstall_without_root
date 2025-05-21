@@ -35,9 +35,17 @@ let appsDisabled = [];
 const createAppCard = (app, appType) => {
     const templateHTML = document.getElementById('app-card-template').innerHTML;
 
+    // 確定應用是否啟用
+    const isEnabled = !appsDisabled.includes(app.package_name);
+    const status = isEnabled ? "啟用中" : "停用中";
+    // 使用低飽和度的顏色
+    const statusClass = isEnabled ? "bg-green-900 text-white" : "bg-red-900 text-white";
+
     const cardHTML = templateHTML
         .replaceAll('{{app.packageName}}', app.package_name)
-        .replaceAll('{{app.type}}', appType);
+        .replaceAll('{{app.type}}', appType)
+        .replaceAll('{{app.status}}', status)
+        .replaceAll('{{app.statusClass}}', statusClass);
 
     const template = document.createElement('template');
 
@@ -162,8 +170,12 @@ const getAppList = () => {
     appListContainer.style.display = 'none';
     appListLoadingPlaceholder.style.display = 'flex';
 
-    // 獲取應用列表
-    return runADBcommand('shell pm list packages -f')
+    // 首先獲取已停用的應用列表
+    return getDisabledApps()
+        .then(() => {
+            // 然後獲取應用列表
+            return runADBcommand('shell pm list packages -f');
+        })
         .then((response) => {
             const lines = response.trim().split('\n');
 
@@ -209,7 +221,10 @@ const getAppList = () => {
 
             appsList = appsDict || {};
 
-            updateAppList(appsDict);
+            //check search input
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            // 根據搜尋內容決定顯示全部或過濾後的應用列表
+            updateAppList(searchTerm ? filterAppsBySearchTerm(appsDict, searchTerm) : appsDict);
         })
         .catch((error) => {
             console.error('[adb] Get App List Error:', error);
@@ -319,6 +334,13 @@ const viewAppInfo = (packageName) => {
 
                 // 顯示刪除確認對話框
                 const deleteAppName = document.getElementById('delete-app-name');
+                const deleteAppData = document.getElementById('delete-app-data');
+
+                // 設定預設勾選狀態 (根據設定值)
+                window.getConfig().then((config) => {
+                    deleteAppData.checked = config.delete_data;
+                });
+
                 deleteAppName.textContent = packageName;
                 dialogDeleteApp.open = true;
 
@@ -384,6 +406,13 @@ const viewAppInfo = (packageName) => {
             deleteButton.addEventListener('click', () => {
                 dialog.open = false;
                 const deleteAppName = document.getElementById('delete-app-name');
+                const deleteAppData = document.getElementById('delete-app-data');
+
+                // 設定預設勾選狀態 (根據設定值)
+                window.getConfig().then((config) => {
+                    deleteAppData.checked = config.delete_data;
+                });
+
                 deleteAppName.textContent = appPackageName;
                 dialogDeleteApp.open = true;
 
@@ -400,6 +429,81 @@ const viewAppInfo = (packageName) => {
             }, 1);
         });
 }
+
+// 啟用應用程式函數
+const enableApp = (packageName, dialog) => {
+    // 使用 adb.js 中定義的函數
+    enableAPP(packageName)
+        .then((success) => {
+            if (success) {
+                showSnackAlert(`應用程式 ${packageName} 已啟用`);
+
+                // 移除已停用列表中的此應用
+                const index = appsDisabled.indexOf(packageName);
+                if (index > -1) {
+                    appsDisabled.splice(index, 1);
+                }
+
+                // 關閉對話框
+                if (dialog && typeof dialog.open !== 'undefined') {
+                    dialog.open = false;
+
+                    // 從DOM中移除對話框
+                    setTimeout(() => {
+                        if (dialog.parentNode) {
+                            dialog.parentNode.removeChild(dialog);
+                        }
+                    }, 300);
+                }
+
+                // 重新整理應用程式列表
+                getAppList();
+            } else {
+                showSnackAlert(`啟用應用程式 ${packageName} 失敗`);
+            }
+        })
+        .catch((error) => {
+            console.error('啟用應用程式時發生錯誤:', error);
+            showSnackAlert(`錯誤：啟用應用程式失敗`);
+        });
+};
+
+// 停用應用程式函數
+const disableApp = (packageName, dialog) => {
+    // 使用 adb.js 中定義的函數
+    disableAPP(packageName)
+        .then((success) => {
+            if (success) {
+                showSnackAlert(`應用程式 ${packageName} 已停用`);
+
+                // 添加到已停用列表
+                if (!appsDisabled.includes(packageName)) {
+                    appsDisabled.push(packageName);
+                }
+
+                // 關閉對話框
+                if (dialog && typeof dialog.open !== 'undefined') {
+                    dialog.open = false;
+
+                    // 從DOM中移除對話框
+                    setTimeout(() => {
+                        if (dialog.parentNode) {
+                            dialog.parentNode.removeChild(dialog);
+                        }
+                    }, 300);
+                }
+
+                // 重新整理應用程式列表
+                getAppList();
+            } else {
+                showSnackAlert(`停用應用程式 ${packageName} 失敗`);
+            }
+        })
+        .catch((error) => {
+            console.error('停用應用程式時發生錯誤:', error);
+            showSnackAlert(`錯誤：停用應用程式失敗`);
+        });
+};
 
 const uninstallAppByPackageName = (packageName) => {
     // 獲取是否刪除應用資料的選項
@@ -419,7 +523,7 @@ const uninstallAppByPackageName = (packageName) => {
         })
         .catch((error) => {
             console.error(`刪除應用程式時發生錯誤: ${error}`);
-            showSnackAlert(`刪除應用程式失敗: ${error}`);
+            showSnackAlert(`錯誤：刪除應用程式失敗`);
         });
 };
 
@@ -430,36 +534,13 @@ buttonApplistRefresh.addEventListener('click', () => {
 
 // search (if on input, auto search)
 searchInput.addEventListener('input', () => {
-    const searchTerm = searchInput.value.toLowerCase();
-
     // If no apps loaded yet or not connected, don't search
     if (!isConnected || !appsList.apps) {
         return;
     }
 
-    // Clear current display
-    appListContainer.innerHTML = '';
-
-    // Create fragment for efficiency
-    const fragment = document.createDocumentFragment();
-
-    // Filter and display user apps
-    const userApps = appsList.apps.user || {};
-    Object.values(userApps)
-        .filter(app => app.package_name.toLowerCase().includes(searchTerm))
-        .forEach(app => {
-            fragment.appendChild(createAppCard(app, '使用者程式'));
-        });
-
-    // Filter and display system apps
-    const systemApps = appsList.apps.system || {};
-    Object.values(systemApps)
-        .filter(app => app.package_name.toLowerCase().includes(searchTerm))
-        .forEach(app => {
-            fragment.appendChild(createAppCard(app, '系統程式'));
-        });
-
-    appListContainer.appendChild(fragment);
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    updateAppList(searchTerm ? filterAppsBySearchTerm(appsList, searchTerm) : appsList);
 });
 
 const confirmWarning = () => {
@@ -472,6 +553,28 @@ const confirmWarning = () => {
     getDevice();
 }
 
+// 在 createAppCard 函數後添加此函數
+const filterAppsBySearchTerm = (apps, term) => {
+    const result = {
+        apps: {
+            user: {},
+            system: {}
+        }
+    };
+
+    // 過濾使用者和系統應用
+    ['user', 'system'].forEach(type => {
+        const appsList = apps.apps[type] || {};
+        Object.values(appsList).forEach(app => {
+            if (app.package_name.toLowerCase().includes(term)) {
+                result.apps[type][app.package_name] = app;
+            }
+        });
+    });
+
+    return result;
+};
+
 const initApp = () => {
     // 隱藏載入畫面
     appLoading.classList.remove('app-loading-showing');
@@ -480,7 +583,7 @@ const initApp = () => {
     switchPage('appList');
 
     // 免責聲明
-    // dialogWarning.open = true;
+    dialogWarning.open = true;
 
-    confirmWarning();
+    // confirmWarning();
 };

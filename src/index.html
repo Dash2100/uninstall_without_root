@@ -66,14 +66,14 @@
         <div class="p-8 px-5 pt-3 flex flex-col app-list">
             <mdui-card class="flex flex-col overflow-auto app_list h-full w-full" id="app-list">
                 <!-- 應用程式載入中提示 -->
-                <div class="flex flex-col justify-center items-center h-full w-full pt-8 pb-12" id="app-list-loading"
+                <div class="flex flex-col justify-center items-center h-full w-full pt-5 pb-12" id="app-list-loading"
                     style="display: none;">
                     <mdui-circular-progress class="mx-auto my-5"></mdui-circular-progress>
                     <p class="text-center">正在載入應用程式列表...</p>
                 </div>
 
                 <!-- 連接裝置提示 -->
-                <div class="flex flex-col justify-center items-center h-full w-full pt-8 pb-12"
+                <div class="flex flex-col justify-center items-center h-full w-full pt-5 pb-12"
                     id="app-list-disconnected">
                     <mdui-icon name="link_off" class="text-6xl mx-auto my-5"></mdui-icon>
                     <p class="text-center text-2xl">請連接裝置</p>
@@ -295,8 +295,11 @@
         data-package-name="{{app.packageName}}">
         <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
         <div class="flex flex-col justify-center flex-1 min-w-0">
-            <p class="text-lg truncate w-11/12">{{app.packageName}}</p>
-            <p class="text-md text-gray-500">{{app.type}}</p>
+            <p class="text-lg truncate">{{app.packageName}}</p>
+            <div class="flex items-center gap-1">
+                <span class="text-xs px-1.5 py-0.5 rounded-full {{app.statusClass}}">{{app.status}}</span>
+                <p class="text-sm text-gray-500">{{app.type}}</p>
+            </div>
         </div>
     </mdui-card>
 </template>
