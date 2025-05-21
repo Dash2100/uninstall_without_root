@@ -25,7 +25,6 @@ const appListLoading = document.getElementById('app-list-loading');
 
 // search
 const searchInput = document.getElementById('search-input');
-const searchButton = document.getElementById('search-button');
 
 // ==================== Local States ====================
 let isConnected = false;
@@ -402,40 +401,65 @@ const viewAppInfo = (packageName) => {
         });
 }
 
+const uninstallAppByPackageName = (packageName) => {
+    // 獲取是否刪除應用資料的選項
+    const deleteAppData = document.getElementById('delete-app-data').checked;
+
+    // 顯示操作進行中的通知
+    showSnackAlert(`正在刪除應用程式: ${packageName}...`);
+
+    // 調用 adb.js 中的 deleteAPP 函數
+    deleteAPP(packageName, deleteAppData)
+        .then(() => {
+            // 刪除成功後更新應用程式列表
+            showSnackAlert(`應用程式 ${packageName} 已成功刪除`);
+
+            // 重新獲取應用程式列表
+            getAppList();
+        })
+        .catch((error) => {
+            console.error(`刪除應用程式時發生錯誤: ${error}`);
+            showSnackAlert(`刪除應用程式失敗: ${error}`);
+        });
+};
+
 // button listeners
 buttonApplistRefresh.addEventListener('click', () => {
     getAppList();
 });
 
-// search button
-searchButton.addEventListener('click', () => {
-    const searchValue = searchInput.value.trim();
+// search (if on input, auto search)
+searchInput.addEventListener('input', () => {
+    const searchTerm = searchInput.value.toLowerCase();
 
-    if (searchValue) {
-        // filter apps
-        const filteredApps = {
-            apps: {
-                user: {},
-                system: {}
-            }
-        };
-
-        Object.keys(appsList.apps.user).forEach(key => {
-            if (key.includes(searchValue)) {
-                filteredApps.apps.user[key] = appsList.apps.user[key];
-            }
-        });
-
-        Object.keys(appsList.apps.system).forEach(key => {
-            if (key.includes(searchValue)) {
-                filteredApps.apps.system[key] = appsList.apps.system[key];
-            }
-        });
-
-        updateAppList(filteredApps);
-    } else {
-        updateAppList(appsList);
+    // If no apps loaded yet or not connected, don't search
+    if (!isConnected || !appsList.apps) {
+        return;
     }
+
+    // Clear current display
+    appListContainer.innerHTML = '';
+
+    // Create fragment for efficiency
+    const fragment = document.createDocumentFragment();
+
+    // Filter and display user apps
+    const userApps = appsList.apps.user || {};
+    Object.values(userApps)
+        .filter(app => app.package_name.toLowerCase().includes(searchTerm))
+        .forEach(app => {
+            fragment.appendChild(createAppCard(app, '使用者程式'));
+        });
+
+    // Filter and display system apps
+    const systemApps = appsList.apps.system || {};
+    Object.values(systemApps)
+        .filter(app => app.package_name.toLowerCase().includes(searchTerm))
+        .forEach(app => {
+            fragment.appendChild(createAppCard(app, '系統程式'));
+        });
+
+    appListContainer.appendChild(fragment);
 });
 
 const confirmWarning = () => {
@@ -456,5 +480,7 @@ const initApp = () => {
     switchPage('appList');
 
     // 免責聲明
-    dialogWarning.open = true;
+    // dialogWarning.open = true;
+
+    confirmWarning();
 };

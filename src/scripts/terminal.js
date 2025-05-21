@@ -7,14 +7,21 @@ const floatingPill = document.getElementsByClassName('floating-pill');
 
 let terminalOutput;
 
-// 初始化终端输出区域
 function initTerminal() {
     clearTerminal();
     terminalOutput = document.getElementById('debug-terminal-output');
 }
 
+function scrollToBottom() {
+    if (terminalOutput) {
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+}
+
 function toggleTerminal(show) {
     const pages = document.querySelectorAll('.page');
+
+    scrollToBottom();
 
     if (show === undefined) {
         show = terminal.style.display === 'none';
@@ -78,15 +85,11 @@ function appendToTerminal(text, type = 'response') {
     }
 
     terminalOutput.appendChild(newOutput);
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
 
-    // scroll to bottom
-    terminal.scrollTop = terminal.scrollHeight;
-    terminalInput.scrollTop = terminalInput.scrollHeight;
-    terminalInput.focus();
+    scrollToBottom();
 }
 
-// 執行終端命令
+// ADB 命令
 function executeTerminalCommand(command) {
     if (!command) return;
     terminalInput.value = '';
@@ -129,16 +132,14 @@ debugTerminalSubmit.addEventListener('click', () => {
     executeTerminalCommand(command);
 });
 
-// 在页面加载后初始化终端
-document.addEventListener('DOMContentLoaded', () => {
-    initTerminal();
-});
-
-// listen for enter key press on terminal input
 terminalInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
         event.preventDefault();
         const command = terminalInput.value.trim();
         executeTerminalCommand(command);
     }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    initTerminal();
 });

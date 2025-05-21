@@ -224,3 +224,15 @@ ipcMain.handle('set-config', async (event, key, value) => {
 ipcMain.handle('reset-config', async (event) => {
     resetConfigToDefault();
 });
+
+// adb shound be kill when app quit
+app.on('before-quit', () => {
+    const adbPath = getAdbPath();
+    exec(`"${adbPath}" kill-server`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error killing ADB server: ${error.message}`);
+            return;
+        }
+        console.log('ADB server killed:', stdout);
+    });
+});
