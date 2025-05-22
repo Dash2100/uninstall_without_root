@@ -47,7 +47,6 @@ const createQuestionDialog = (options) => {
 
     document.body.appendChild(dialog);
 
-    // 顯示 dialog ( delay 1ms 顯示開啟動畫 )
     setTimeout(() => {
         dialog.open = true;
     }, 1);

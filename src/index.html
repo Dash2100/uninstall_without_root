@@ -150,7 +150,7 @@
                     <mdui-avatar class="my-auto mx-4" icon="folder"></mdui-avatar>
                     <div class="flex flex-col justify-center">
                         <p class="text-lg">提取 APK 儲存路徑</p>
-                        <p class="text-md text-gray-500" id="settings-extract-path">
+                        <p class="text-md text-gray-500 whitespace-nowrap truncate" id="settings-extract-path">
                             Extract APK Path
                         </p>
                     </div>
@@ -335,8 +335,7 @@
             </div>
             <div class="flex w-full gap-6">
                 <mdui-button slot="action" variant="tonal" icon="download" class="flex-1">提取APK</mdui-button>
-                <mdui-button slot="action" variant="tonal" icon="delete" class="flex-1"
-                    onclick="uninstallApp(1);">刪除</mdui-button>
+                <mdui-button slot="action" variant="tonal" icon="delete" class="flex-1">刪除</mdui-button>
             </div>
         </div>
     </mdui-dialog>

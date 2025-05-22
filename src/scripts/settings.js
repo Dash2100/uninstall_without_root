@@ -7,7 +7,7 @@ const settingsChAPKPath = document.getElementById('settings-chapkpath');
 const settingsChAPKPathText = document.getElementById('settings-extract-path');
 const resetSettingsButton = document.getElementById('settings-reset');
 
-function loadConfig() {
+const loadConfig = () => {
     window.getConfig().then((response) => {
         const { language, darkmode, delete_data, debug_mode, extrect_path } = response;
         console.log('[config] Loaded config:', response);
@@ -18,7 +18,7 @@ function loadConfig() {
         settingsDarkMode.checked = darkmode;
         settingsAppdata.checked = delete_data;
         settingsDebugMode.checked = debug_mode;
-        settingsChAPKPathText.innerText = truncateFilePath(extrect_path, 30);
+        settingsChAPKPathText.innerText = truncateFilePath(extrect_path, 35);
 
         // update theme
         if (!darkmode) {
@@ -27,7 +27,6 @@ function loadConfig() {
             document.body.classList.add('mdui-theme-dark');
         }
 
-        // 如果啟用了調試模式，確保窗口大小正確
         if (debug_mode) {
             toggleTerminal(true);
         } else {
@@ -36,8 +35,7 @@ function loadConfig() {
     });
 }
 
-function updateConfig(key, value) {
-    // 使用 window.updateConfig 而不是遞迴呼叫本地函數
+const updateConfig = (key, value) => {
     return window.setConfig(key, value).then((response) => {
         console.log('[config] Updated config:', response);
         return response;
@@ -103,7 +101,7 @@ settingsChAPKPath.addEventListener('click', async (event) => {
 
             updateConfig('extrect_path', selectedPath);
 
-            let truncatePath = truncateFilePath(selectedPath, 30);
+            let truncatePath = truncateFilePath(selectedPath, 35);
 
             settingsChAPKPathText.innerText = truncatePath;
         }
@@ -129,7 +127,7 @@ resetSettingsButton.addEventListener('click', () => {
 });
 
 // file path truncation
-function truncateFilePath(filePath, maxLength) {
+const truncateFilePath = (filePath, maxLength) => {
     if (filePath.length <= maxLength) {
         return filePath;
     }

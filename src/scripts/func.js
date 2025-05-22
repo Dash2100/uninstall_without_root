@@ -253,184 +253,152 @@ const getDisabledApps = () => {
 const viewAppInfo = (packageName) => {
     runADBcommand(`shell dumpsys package ${packageName}`)
         .then((packageInfo) => {
+            // 從 packageInfo 解析資訊
+            const appData = parseAppInfo(packageInfo);
 
-            // default value
-            let versionName = "Unknown";
-            let versionCode = "Unknown";
-            let lastUpdateTime = "Unknown";
-
-            if (packageInfo) {
-                // parse version info
-                const versionNameRegex = /versionName=([^\s]+)/;
-                const versionCodeRegex = /versionCode=([^\s]+)/;
-                const versionNameMatch = packageInfo.match(versionNameRegex);
-                const versionCodeMatch = packageInfo.match(versionCodeRegex);
-
-                if (versionNameMatch && versionNameMatch[1]) {
-                    versionName = versionNameMatch[1];
-                }
-                if (versionCodeMatch && versionCodeMatch[1]) {
-                    versionCode = versionCodeMatch[1];
-                }
-
-                // parse last update time
-                const lastUpdateRegex = /lastUpdateTime=([^\n]+)/;
-                const lastUpdateMatch = packageInfo.match(lastUpdateRegex);
-                if (lastUpdateMatch && lastUpdateMatch[1]) {
-                    lastUpdateTime = lastUpdateMatch[1];
-                }
-            }
-
-            // is enabled
+            // 是否啟用
             const isEnabled = !appsDisabled.includes(packageName);
             const enableStatus = isEnabled ? "啟用中" : "已停用";
 
-            // app info template dialog
-            const template = document.getElementById('app-info-template');
-            const dialogContent = template.innerHTML
-                .replaceAll('{{app.packageName}}', packageName)
-                .replaceAll('{{app.version}}', `${versionName} (${versionCode})`)
-                .replaceAll('{{app.latestUpdate}}', lastUpdateTime)
-                .replaceAll('{{app.isEnable}}', enableStatus);
-
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = dialogContent;
-
-            // 獲取對話框元素
-            const dialog = tempDiv.querySelector('.dialog-appinfo');
-
-            // 添加到文檔中
-            document.body.appendChild(dialog);
-
-            // 設置按鈕點擊事件
-            const enableButton = dialog.querySelector('mdui-button[icon="power_settings_new"]');
-            const disableButton = dialog.querySelector('mdui-button[icon="power_off"]');
-            const extractButton = dialog.querySelector('mdui-button[icon="download"]');
-            const deleteButton = dialog.querySelector('mdui-button[icon="delete"]');
-
-            // 根據應用狀態設置按鈕啟用/禁用
-            enableButton.disabled = isEnabled;
-            disableButton.disabled = !isEnabled;
-
-            // 啟用按鈕事件
-            enableButton.addEventListener('click', () => {
-                enableApp(packageName, dialog);
-            });
-
-            // 停用按鈕事件
-            disableButton.addEventListener('click', () => {
-                disableApp(packageName, dialog);
-            });
-
-            // 提取APK按鈕事件
-            extractButton.addEventListener('click', () => {
-                extractApk(packageName);
-            });
-
-            // 刪除按鈕事件
-            deleteButton.addEventListener('click', () => {
-                // 關閉當前對話框
-                dialog.open = false;
-
-                // 顯示刪除確認對話框
-                const deleteAppName = document.getElementById('delete-app-name');
-                const deleteAppData = document.getElementById('delete-app-data');
-
-                // 設定預設勾選狀態 (根據設定值)
-                window.getConfig().then((config) => {
-                    deleteAppData.checked = config.delete_data;
-                });
-
-                deleteAppName.textContent = packageName;
-                dialogDeleteApp.open = true;
-
-                // 設置確認刪除按鈕的事件
-                const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-                confirmDeleteBtn.onclick = () => {
-                    uninstallAppByPackageName(packageName);
-                    dialogDeleteApp.open = false;
-                };
-            });
-
-            // 打開對話框
-            setTimeout(() => {
-                dialog.open = true;
-            }, 1);
+            // 顯示應用資訊對話框
+            createAndShowAppInfoDialog(packageName, appData.versionName, appData.versionCode,
+                appData.lastUpdateTime, enableStatus, isEnabled);
         })
         .catch(error => {
             console.error('獲取應用資訊失敗:', error);
 
-            // 即使發生錯誤仍然顯示對話框，使用「未知」作為資訊
-            const appPackageName = packageName || "未知應用";
-
-            // 使用模板建立對話框，所有資訊都顯示未知
-            const template = document.getElementById('app-info-template');
-            const dialogContent = template.innerHTML
-                .replaceAll('{{app.packageName}}', appPackageName)
-                .replaceAll('{{app.version}}', "未知")
-                .replaceAll('{{app.latestUpdate}}', "未知")
-                .replaceAll('{{app.isEnable}}', "未知");
-
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = dialogContent;
-
-            // 獲取對話框元素
-            const dialog = tempDiv.querySelector('.dialog-appinfo');
-
-            // 添加到文檔中
-            document.body.appendChild(dialog);
-
-            // 設置按鈕點擊事件
-            const enableButton = dialog.querySelector('mdui-button[icon="power_settings_new"]');
-            const disableButton = dialog.querySelector('mdui-button[icon="power_off"]');
-            const extractButton = dialog.querySelector('mdui-button[icon="download"]');
-            const deleteButton = dialog.querySelector('mdui-button[icon="delete"]');
-
-            // 啟用所有按鈕
-            enableButton.disabled = false;
-            disableButton.disabled = false;
-
-            // 按鈕事件
-            enableButton.addEventListener('click', () => {
-                enableApp(appPackageName, dialog);
-            });
-
-            disableButton.addEventListener('click', () => {
-                disableApp(appPackageName, dialog);
-            });
-
-            extractButton.addEventListener('click', () => {
-                extractApk(appPackageName);
-            });
-
-            deleteButton.addEventListener('click', () => {
-                dialog.open = false;
-                const deleteAppName = document.getElementById('delete-app-name');
-                const deleteAppData = document.getElementById('delete-app-data');
-
-                // 設定預設勾選狀態 (根據設定值)
-                window.getConfig().then((config) => {
-                    deleteAppData.checked = config.delete_data;
-                });
-
-                deleteAppName.textContent = appPackageName;
-                dialogDeleteApp.open = true;
-
-                const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-                confirmDeleteBtn.onclick = () => {
-                    uninstallAppByPackageName(appPackageName);
-                    dialogDeleteApp.open = false;
-                };
-            });
-
-            // 打開對話框
-            setTimeout(() => {
-                dialog.open = true;
-            }, 1);
+            // 使用預設值顯示對話框
+            createAndShowAppInfoDialog(packageName || "未知應用", "未知", "未知", "未知", "未知", false);
         });
-}
+};
 
-// 啟用應用程式函數
+// 解析應用程式資訊
+const parseAppInfo = (packageInfo) => {
+    // 預設值
+    let versionName = "未知";
+    let versionCode = "未知";
+    let lastUpdateTime = "未知";
+
+    if (packageInfo) {
+        // 解析版本資訊
+        const versionNameRegex = /versionName=([^\s]+)/;
+        const versionCodeRegex = /versionCode=([^\s]+)/;
+        const versionNameMatch = packageInfo.match(versionNameRegex);
+        const versionCodeMatch = packageInfo.match(versionCodeRegex);
+
+        if (versionNameMatch && versionNameMatch[1]) {
+            versionName = versionNameMatch[1];
+        }
+        if (versionCodeMatch && versionCodeMatch[1]) {
+            versionCode = versionCodeMatch[1];
+        }
+
+        // 解析最後更新時間
+        const lastUpdateRegex = /lastUpdateTime=([^\n]+)/;
+        const lastUpdateMatch = packageInfo.match(lastUpdateRegex);
+        if (lastUpdateMatch && lastUpdateMatch[1]) {
+            lastUpdateTime = lastUpdateMatch[1];
+        }
+    }
+
+    return { versionName, versionCode, lastUpdateTime };
+};
+
+// 創建並顯示應用程式資訊對話框
+const createAndShowAppInfoDialog = (packageName, versionName, versionCode, lastUpdateTime, enableStatus, isEnabled) => {
+    // 使用模板建立對話框
+    const template = document.getElementById('app-info-template');
+    const dialogContent = template.innerHTML
+        .replaceAll('{{app.packageName}}', packageName)
+        .replaceAll('{{app.version}}', `${versionName} (${versionCode})`)
+        .replaceAll('{{app.latestUpdate}}', lastUpdateTime)
+        .replaceAll('{{app.isEnable}}', enableStatus);
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = dialogContent;
+
+    // 獲取對話框元素
+    const dialog = tempDiv.querySelector('.dialog-appinfo');
+
+    // 添加到文檔中
+    document.body.appendChild(dialog);
+
+    // 添加對話框關閉時的事件處理
+    dialog.addEventListener('close', () => {
+        if (dialog.parentNode) {
+            setTimeout(() => {
+                dialog.parentNode.removeChild(dialog);
+            }, 300);
+        }
+    });
+
+    // 設置按鈕及其事件
+    setupAppInfoDialogButtons(dialog, packageName, isEnabled);
+
+    // 打開對話框
+    setTimeout(() => {
+        dialog.open = true;
+    }, 1);
+};
+
+// 設置應用資訊對話框按鈕
+const setupAppInfoDialogButtons = (dialog, packageName, isEnabled) => {
+    // 獲取按鈕元素
+    const enableButton = dialog.querySelector('mdui-button[icon="power_settings_new"]');
+    const disableButton = dialog.querySelector('mdui-button[icon="power_off"]');
+    const extractButton = dialog.querySelector('mdui-button[icon="download"]');
+    const deleteButton = dialog.querySelector('mdui-button[icon="delete"]');
+
+    // 根據應用狀態設置按鈕啟用/禁用
+    enableButton.disabled = isEnabled;
+    disableButton.disabled = !isEnabled;
+
+    // 啟用按鈕事件
+    enableButton.addEventListener('click', () => {
+        enableApp(packageName, dialog);
+    });
+
+    // 停用按鈕事件
+    disableButton.addEventListener('click', () => {
+        disableApp(packageName, dialog);
+    });
+
+    // 提取APK按鈕事件
+    extractButton.addEventListener('click', () => {
+        downloadAPK(packageName);
+    });
+
+    // 刪除按鈕事件
+    deleteButton.addEventListener('click', () => {
+        showDeleteConfirmation(dialog, packageName);
+    });
+};
+
+// 顯示刪除確認對話框
+const showDeleteConfirmation = (currentDialog, packageName) => {
+    // 關閉當前對話框
+    currentDialog.open = false;
+
+    // 顯示刪除確認對話框
+    const deleteAppName = document.getElementById('delete-app-name');
+    const deleteAppData = document.getElementById('delete-app-data');
+
+    // 設定預設勾選狀態 (根據設定值)
+    window.getConfig().then((config) => {
+        deleteAppData.checked = config.delete_data;
+    });
+
+    deleteAppName.textContent = packageName;
+    dialogDeleteApp.open = true;
+
+    // 設置確認刪除按鈕的事件
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    confirmDeleteBtn.onclick = () => {
+        uninstallAppByPackageName(packageName);
+        dialogDeleteApp.open = false;
+    };
+};
+
 const enableApp = (packageName, dialog) => {
     // 使用 adb.js 中定義的函數
     enableAPP(packageName)
@@ -447,13 +415,6 @@ const enableApp = (packageName, dialog) => {
                 // 關閉對話框
                 if (dialog && typeof dialog.open !== 'undefined') {
                     dialog.open = false;
-
-                    // 從DOM中移除對話框
-                    setTimeout(() => {
-                        if (dialog.parentNode) {
-                            dialog.parentNode.removeChild(dialog);
-                        }
-                    }, 300);
                 }
 
                 // 重新整理應用程式列表
@@ -484,13 +445,6 @@ const disableApp = (packageName, dialog) => {
                 // 關閉對話框
                 if (dialog && typeof dialog.open !== 'undefined') {
                     dialog.open = false;
-
-                    // 從DOM中移除對話框
-                    setTimeout(() => {
-                        if (dialog.parentNode) {
-                            dialog.parentNode.removeChild(dialog);
-                        }
-                    }, 300);
                 }
 
                 // 重新整理應用程式列表
@@ -575,6 +529,32 @@ const filterAppsBySearchTerm = (apps, term) => {
     return result;
 };
 
+const downloadAPK = (packageName) => {
+    // showSnackAlert(`正在提取應用程式: ${packageName}...`);
+    console.log("Extracting APK:", packageName);
+
+    // get extract path
+    window.getConfig().then((config) => {
+        const extractPath = config.extrect_path;
+
+        extractAPK(packageName, extractPath)
+            .then((success) => {
+                if (success) {
+                    showSnackAlert(`應用程式 ${packageName} 已成功提取到: ${extractPath}`);
+                } else {
+                    showSnackAlert(`提取應用程式 ${packageName} 失敗`);
+                }
+            })
+            .catch((error) => {
+                console.error('提取 APK 時發生錯誤:', error);
+                showSnackAlert(`錯誤：提取應用程式失敗 - ${error}`);
+            });
+    }).catch((error) => {
+        console.error('讀取設定時發生錯誤:', error);
+        showSnackAlert(`錯誤：無法讀取設定檔`);
+    });
+};
+
 const initApp = () => {
     // 隱藏載入畫面
     appLoading.classList.remove('app-loading-showing');
@@ -583,7 +563,7 @@ const initApp = () => {
     switchPage('appList');
 
     // 免責聲明
-    dialogWarning.open = true;
+    // dialogWarning.open = true;
 
-    // confirmWarning();
+    confirmWarning();
 };

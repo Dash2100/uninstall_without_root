@@ -1,5 +1,5 @@
 {
-  "name": "maii-uninstaller",
+  "name": "android-app-adb-uninstaller",
   "version": "1.0.0",
   "description": "Android app uninstaller without root",
   "main": "app.js",

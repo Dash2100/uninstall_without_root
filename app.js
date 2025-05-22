@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 
 const { exec } = require('child_process');
 
@@ -9,9 +9,12 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
+// temp folder
+const tempPath = path.join(app.getPath('userData'), 'temp');
+
 // ================= ADB functions =================
 
-function getAdbPath() {
+const getAdbPath = () => {
     const platform = os.platform();
     const arch = os.arch();
 
@@ -44,7 +47,7 @@ function getAdbPath() {
 }
 
 // set adb file permission to executable
-function getADBPermission() {
+const getADBPermission = () => {
     const adbPath = getAdbPath();
 
     if (os.platform() !== 'win32') {
@@ -57,7 +60,7 @@ function getADBPermission() {
     return adbPath;
 }
 
-function initADB() {
+const initADB = () => {
     try {
         getADBPermission();
     } catch (error) {
@@ -65,11 +68,7 @@ function initADB() {
     }
 }
 
-function createWindow() {
-    // 讀取配置判斷是否啟用調試模式
-    const config = readConfig();
-    const debugMode = config && config.debug_mode;
-
+const createWindow = () => {
     const win = new BrowserWindow({
         width: 850,
         height: 900,
@@ -81,7 +80,6 @@ function createWindow() {
         }
     });
 
-    // 將窗口对象存储为全局变量，以便後續可存取
     global.mainWindow = win;
 
     win.setBackgroundColor("#0f0f0f");
@@ -93,7 +91,7 @@ function createWindow() {
 }
 
 // readconfig
-function resetConfigToDefault() {
+const resetConfigToDefault = () => {
     const configPath = path.join(app.getPath('userData'), 'config.json');
 
     console.log("[config] Config Path: ", configPath);
@@ -116,7 +114,7 @@ function resetConfigToDefault() {
     console.log("[config] Config file created with default values.");
 }
 
-function readConfig() {
+const readConfig = () => {
     const configPath = path.join(app.getPath('userData'), 'config.json');
 
     console.log("[config] Config Path: ", configPath);
@@ -142,6 +140,42 @@ function readConfig() {
     }
 }
 
+// delete all files in temp folder
+const formatTempFolder = () => {
+    // delete everything including subfolders
+    fs.readdir(tempPath, (err, files) => {
+        if (err) {
+            console.error("[temp] Error reading temp folder:", err);
+            return;
+        }
+
+        files.forEach(file => {
+            const filePath = path.join(tempPath, file);
+            fs.rm(filePath, { recursive: true, force: true }, (err) => {
+                if (err) {
+                    console.error("[temp] Error deleting file:", err);
+                } else {
+                    console.log("[temp] Deleted file:", filePath);
+                }
+            });
+        });
+    });
+    console.log("[temp] Temp folder formatted.");
+}
+
+// init apk temp folder
+const initTempFolder = () => {
+    if (!fs.existsSync(tempPath)) {
+        fs.mkdirSync(tempPath);
+    } else {
+        formatTempFolder();
+    }
+
+    console.log("[temp] Temp folder path:", tempPath);
+
+    return tempPath;
+}
+
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
         app.quit();
@@ -152,17 +186,6 @@ app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
-});
-
-app.whenReady().then(() => {
-    console.log("[adb] Used Adb Path: ", getAdbPath());
-
-    readConfig();
-
-    // Initialize ADB
-    initADB();
-
-    createWindow();
 });
 
 // IPC commands
@@ -220,14 +243,89 @@ ipcMain.handle('set-config', async (event, key, value) => {
     return config;
 });
 
+ipcMain.handle('format-temp-folder', async (event) => {
+    formatTempFolder();
+    console.log("[temp] Temp folder formatted.");
+});
+
+ipcMain.handle('get-temp-folder-path', async (event) => {
+    const tempPath = path.join(app.getPath('userData'), 'temp');
+    console.log("[temp] Temp folder path:", tempPath);
+    return tempPath;
+});
+
+ipcMain.handle('rename-and-move-apk', async () => {
+    const config = readConfig();
+    const extrectPath = path.join(app.getPath('userData'), config.extrect_path);
+
+    if (!fs.existsSync(extrectPath)) {
+        fs.mkdirSync(extrectPath);
+    }
+
+    // 使用 Promise 包裝 fs.readdir
+    try {
+        const files = await new Promise((resolve, reject) => {
+            fs.readdir(tempPath, (err, files) => {
+                if (err) {
+                    console.log("[temp] reading temp folder error:", err);
+                    reject(err);
+                } else {
+                    resolve(files);
+                }
+            });
+        });
+
+        if (files.length === 0) {
+            console.log("[temp] apk not found, check if it's still extracting...");
+            // 直接返回物件，而非 JSON 字符串
+            return {
+                state: false,
+                error: false
+            };
+        } else {
+            console.log("[temp] apk found:", files);
+            // 直接返回物件，而非 JSON 字符串
+            return {
+                state: true,
+                files: files
+            };
+        }
+    } catch (error) {
+        console.log("[temp] error:", error);
+        // 直接返回物件，而非 JSON 字符串
+        return {
+            state: false,
+            error: true,
+            message: error.message
+        };
+    }
+});
+
+ipcMain.handle('open-file-path', async (event, filePath) => {
+    shell.showItemInFolder(filePath);
+});
+
 // reset config
 ipcMain.handle('reset-config', async (event) => {
     resetConfigToDefault();
 });
 
+// check file exists
+ipcMain.handle('check-file-exists', async (event, filePath) => {
+    try {
+        await fs.promises.access(filePath, fs.constants.F_OK);
+        console.log(`[file] 檔案存在: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.log(`[file] 檔案不存在: ${filePath}`);
+        return false;
+    }
+});
+
 // adb shound be kill when app quit
 app.on('before-quit', () => {
     const adbPath = getAdbPath();
+
     exec(`"${adbPath}" kill-server`, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error killing ADB server: ${error.message}`);
@@ -235,4 +333,20 @@ app.on('before-quit', () => {
         }
         console.log('ADB server killed:', stdout);
     });
+});
+
+app.whenReady().then(() => {
+    console.log("[app] App is initializing...");
+    console.log("[adb] Used Adb Path: ", getAdbPath());
+
+    readConfig();
+
+    // Initialize ADB
+    initADB();
+
+    // Initialize temp folder
+    initTempFolder();
+
+    // electron window
+    createWindow();
 });
