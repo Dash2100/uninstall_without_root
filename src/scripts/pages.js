@@ -1,26 +1,21 @@
-// pages
+// Cache page elements
 const pages = {
     appList: document.getElementById('appList'),
     settings: document.getElementById('settings'),
     about: document.getElementById('about')
 };
 
-const switchPage = (pageId) => {
-    const currentPage = document.querySelector('.page.active');
-    const newPage = document.getElementById(pageId);
+// Switch the active page
+function switchPage(pageId) {
+    const current = document.querySelector('.page.active');
+    const next = pages[pageId] || document.getElementById(pageId);
+    if (current === next) return;
 
-    if (currentPage === newPage) return;
-
-    if (currentPage) {
-        currentPage.classList.remove('active');
+    if (current) {
+        current.classList.remove('active');
     }
+    next.classList.add('active');
 
-    newPage.classList.add('active');
     const navigationBar = document.querySelector('mdui-navigation-bar');
-
-    if (pageId === 'appList') {
-        navigationBar.value = 'apps';
-    } else {
-        navigationBar.value = pageId;
-    }
+    navigationBar.value = pageId === 'appList' ? 'apps' : pageId;
 }

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum=1, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="renderer" content="webkit" />
 
     <!-- Node.js integration script -->
@@ -47,9 +47,17 @@
         <mdui-top-app-bar class="relative">
             <mdui-top-app-bar-title class="ml-5 font-bold">應用程式管理</mdui-top-app-bar-title>
             </mdui-button-icon>
-            <mdui-button-icon icon="link" id="icon-connected" class="mx-1 hidden" onclick="getDevice();" title="已連接裝置">
+
+            <mdui-button-icon variant="tonal" icon="wifi" class="mx-1"></mdui-button-icon>
+
+            <mdui-circular-progress id="icon-loading" class="mt-2 pl-2 w-10 h-6 hidden"></mdui-circular-progress>
+
+            <mdui-button-icon variant="tonal" icon="link" id="icon-connected" class="mx-1 hidden" onclick="getDevice();"
+                title="已連接裝置">
             </mdui-button-icon>
-            <mdui-button-icon icon="link_off" id="icon-disconnected" class="mx-1" onclick="getDevice();" title="尚未連接裝置">
+
+            <mdui-button-icon variant="tonal" icon="link_off" id="icon-disconnected" class="mx-1" onclick="getDevice();"
+                title="尚未連接裝置">
             </mdui-button-icon>
         </mdui-top-app-bar>
 
@@ -102,7 +110,7 @@
         <!-- content -->
         <div class="p-8 pt-3">
             <div class="flex flex-col gap-4">
-                <mdui-card class="w-full h-20 flex">
+                <!-- <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="translate"></mdui-avatar>
                     <div class="flex flex-col justify-center">
                         <p class="text-lg">顯示語言</p>
@@ -115,7 +123,7 @@
                         <mdui-segmented-button value="zh">中文</mdui-segmented-button>
                         <mdui-segmented-button value="eng">ENG</mdui-segmented-button>
                     </mdui-segmented-button-group>
-                </mdui-card>
+                </mdui-card> -->
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="contrast"></mdui-avatar>
                     <div class="flex flex-col justify-center">
@@ -283,14 +291,52 @@
                 注意：部分中國手機無法支援！
             </span>
         </span>
+        <mdui-button slot="action" variant="tonal" onclick="window.breakWindow();">不同意</mdui-button>
+        <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">同意條款</mdui-button>
+    </mdui-dialog>
+
+    <mdui-dialog class="dialog-select-device">
+        <span slot="headline" class="font-bold">選擇裝置</span>
+        <span slot="description">
+            <p>偵測到目前有多個裝置連接，請選擇您要操作的裝置：</p>
+        </span>
+        <mdui-menu selects="single" class="mx-auto mt-5 rounded-xl"></mdui-menu>
         <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">確定</mdui-button>
     </mdui-dialog>
 
-    <!-- info snackbar -->
-    <mdui-snackbar class="snackbar-connected mb-20" id="snackbar-alert" auto-close-delay="2500"></mdui-snackbar>
+    <mdui-dialog class="dialog-wireless-connect">
+        <span slot="headline" class="font-bold">無線連接</span>
+        <span slot="description">
+            <p class="leading-loose">
+                您可以在不使用 USB 線的情況下連接到 Android 裝置
+                <br />
+                請從下方選擇連接方式：
+            </p>
+
+            <div class="w-fill flex gap-10">
+                <div class="flex flex-col">
+                    <h2 class="text-lg mt-4 font-bold">1. 掃描 QR Code</h2>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Rickrolling_QR_code.png"
+                        alt="QR Code Example" class="w-52 mx-auto my-3 rounded-lg">
+                </div>
+
+                <div class="flex flex-col">
+                    <h2 class="text-lg mt-4 font-bold">2. 透過 IP 位址連接</h2>
+                    <p class="my-3">請輸入裝置 IP 位置以及配對碼</p>
+                    <div class="w-full flex flex-col gap-3">
+                        <mdui-text-field label="IP 位置"
+                            class="rounded-full overflow-hidden shadow-none"></mdui-text-field>
+                        <mdui-text-field label="配對代碼"
+                            class="rounded-full overflow-hidden shadow-none"></mdui-text-field>
+                        <mdui-button variant="tonal" class="w-full" id="button-connect-ip">連接</mdui-button>
+                    </div>
+                </div>
+            </div>
+        </span>
+    </mdui-dialog>
 </body>
 
-<template id="app-card-template">
+<template id=" app-card-template">
     <mdui-card clickable variant="elevated" class="app-card w-full h-20 flex rounded-none"
         data-package-name="{{app.packageName}}">
         <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
@@ -339,6 +385,10 @@
             </div>
         </div>
     </mdui-dialog>
+</template>
+
+<template id="snackbar-alert-template">
+    <mdui-snackbar class="snackbar-alert mb-20" auto-close-delay="2500"></mdui-snackbar>
 </template>
 
 </html>

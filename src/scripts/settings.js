@@ -1,117 +1,82 @@
-// settings
-const settingsLanguage = document.getElementById('settings-language');
-const settingsDarkMode = document.getElementById('settings-darkmode');
-const settingsAppdata = document.getElementById('settings-appdata');
-const settingsDebugMode = document.getElementById('settings-debugmode');
-const settingsChAPKPath = document.getElementById('settings-chapkpath');
-const settingsChAPKPathText = document.getElementById('settings-extract-path');
-const resetSettingsButton = document.getElementById('settings-reset');
+// Select settings elements
+const settingsEls = {
+    language: document.getElementById('settings-language'),
+    darkMode: document.getElementById('settings-darkmode'),
+    appData: document.getElementById('settings-appdata'),
+    debugMode: document.getElementById('settings-debugmode'),
+    chAPKPath: document.getElementById('settings-chapkpath'),
+    extractPathText: document.getElementById('settings-extract-path'),
+    resetButton: document.getElementById('settings-reset'),
+};
 
-const loadConfig = () => {
-    window.getConfig().then((response) => {
-        const { language, darkmode, delete_data, debug_mode, extrect_path } = response;
-        console.log('[config] Loaded config:', response);
-        console.log(language, darkmode, delete_data, debug_mode, extrect_path);
+// Load configuration and update UI
+async function loadConfig() {
+    const { language, darkmode, delete_data, debug_mode, extrect_path } =
+        await window.getConfig();
+    console.log('[config] Loaded config:', { language, darkmode, delete_data, debug_mode, extrect_path });
 
-        // update UI
-        settingsLanguage.value = language;
-        settingsDarkMode.checked = darkmode;
-        settingsAppdata.checked = delete_data;
-        settingsDebugMode.checked = debug_mode;
-        settingsChAPKPathText.innerText = truncateFilePath(extrect_path, 35);
+    // settingsEls.language.value = language;
+    settingsEls.darkMode.checked = darkmode;
+    settingsEls.appData.checked = delete_data;
+    settingsEls.debugMode.checked = debug_mode;
+    settingsEls.extractPathText.innerText = truncateFilePath(extrect_path, 35);
 
-        // update theme
-        if (!darkmode) {
-            document.body.classList.remove('mdui-theme-dark');
-        } else {
-            document.body.classList.add('mdui-theme-dark');
-        }
-
-        if (debug_mode) {
-            toggleTerminal(true);
-        } else {
-            toggleTerminal(false);
-        }
-    });
+    document.body.classList.toggle('mdui-theme-dark', darkmode);
+    toggleTerminal(debug_mode);
 }
 
-const updateConfig = (key, value) => {
-    return window.setConfig(key, value).then((response) => {
-        console.log('[config] Updated config:', response);
-        return response;
+// Update a config key
+const updateConfig = (key, value) =>
+    window.setConfig(key, value).then((cfg) => {
+        console.log('[config] Updated config:', cfg);
+        return cfg;
     });
-}
 
-// language
-settingsLanguage.addEventListener('change', (event) => {
-    const selectedLanguage = event.target.value;
+// Handlers for settings changes
+// settingsEls.language.addEventListener('change', (e) => {
+//     const val = e.target.value;
+//     if (val) {
+//         updateConfig('language', val);
+//         appLang = val;
+//     } else {
+//         setTimeout(() => (settingsEls.language.value = appLang), 1);
+//     }
+// });
 
-    if (selectedLanguage === "") {
-        setTimeout(() => {
-            settingsLanguage.value = appLang;
-        }, 1);
-
-        return;
-    }
-    updateConfig('language', selectedLanguage);
-    appLang = selectedLanguage;
-});
-
-
-// darkmode
-settingsDarkMode.addEventListener('change', (event) => {
-    const checked = event.target.checked;
-
+settingsEls.darkMode.addEventListener('change', (e) => {
+    const checked = e.target.checked;
     updateConfig('darkmode', checked);
-
-    if (checked) {
-        document.body.classList.add('mdui-theme-dark');
-    } else {
-        document.body.classList.remove('mdui-theme-dark');
-    }
+    document.body.classList.toggle('mdui-theme-dark', checked);
 });
 
-// appdata
-settingsAppdata.addEventListener('change', (event) => {
-    const checked = event.target.checked;
-
-    updateConfig('delete_data', checked);
+settingsEls.appData.addEventListener('change', (e) => {
+    updateConfig('delete_data', e.target.checked);
 });
 
-// debug mode
-settingsDebugMode.addEventListener('change', (event) => {
-    const checked = event.target.checked;
-
-    updateConfig('debug_mode', checked).then(() => {
-        toggleTerminal(checked);
-    });
+settingsEls.debugMode.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    updateConfig('debug_mode', checked).then(() => toggleTerminal(checked));
 });
 
-settingsChAPKPath.addEventListener('click', async (event) => {
+// Change extract path
+settingsEls.chAPKPath.addEventListener('click', async () => {
     try {
-        // 選擇資料夾
-        const result = await window.showOpenDialog({ // 直接使用 Node.js 整合的 API
+        const { canceled, filePaths } = await window.showOpenDialog({
             properties: ['openDirectory'],
-            title: '選擇資料夾位置'
+            title: '選擇資料夾位置',
         });
-
-        // 檢查用戶是否選擇了資料夾
-        if (!result.canceled && result.filePaths.length > 0) {
-            const selectedPath = result.filePaths[0];
-
-            updateConfig('extrect_path', selectedPath);
-
-            let truncatePath = truncateFilePath(selectedPath, 35);
-
-            settingsChAPKPathText.innerText = truncatePath;
+        if (!canceled && filePaths.length) {
+            const selected = filePaths[0];
+            await updateConfig('extrect_path', selected);
+            settingsEls.extractPathText.innerText = truncateFilePath(selected, 35);
         }
     } catch (err) {
         console.error('Error selecting folder:', err);
     }
 });
 
-// clear settings
-resetSettingsButton.addEventListener('click', () => {
+// Reset settings
+settingsEls.resetButton.addEventListener('click', () => {
     showQuestionDialog({
         title: '確定要重置設定?',
         description: '所有設定將會恢復為預設值',
@@ -120,54 +85,21 @@ resetSettingsButton.addEventListener('click', () => {
         onAccept: () => {
             window.resetConfig().then(() => {
                 loadConfig();
-                showSnackAlert("設定已重置為預設值");
+                showSnackAlert('設定已重置為預設值');
             });
-        }
+        },
     });
 });
 
-// file path truncation
-const truncateFilePath = (filePath, maxLength) => {
-    if (filePath.length <= maxLength) {
-        return filePath;
-    }
-
-    const isWindows = filePath.includes('\\');
-    const separator = isWindows ? '\\' : '/';
-
-    const lastSeparatorIndex = filePath.lastIndexOf(separator);
-    const lastSegment = lastSeparatorIndex !== -1 ? filePath.substring(lastSeparatorIndex) : '';
-
-    let beginLength = isWindows ? filePath.indexOf(':\\') + 2 : 1;
-
-    const firstSeparatorAfterRoot = filePath.indexOf(separator, beginLength);
-    if (firstSeparatorAfterRoot !== -1) {
-        beginLength = firstSeparatorAfterRoot + 1;
-    }
-
-    const endLength = lastSegment.length;
-    const ellipsis = "...";
-
-    if (beginLength + ellipsis.length + endLength >= maxLength) {
-        const halfMax = Math.floor((maxLength - ellipsis.length) / 2);
-        return filePath.substring(0, halfMax) + ellipsis +
-            filePath.substring(filePath.length - halfMax);
-    }
-
-    const keepBeginning = filePath.substring(0, beginLength);
-    const keepEnd = lastSegment;
-
-    return keepBeginning + ellipsis + keepEnd;
+// Truncate long file paths
+function truncateFilePath(filePath, maxLength) {
+    if (filePath.length <= maxLength) return filePath;
+    const sep = filePath.includes('\\') ? '\\' : '/';
+    const parts = filePath.split(sep);
+    const ellipsis = '...';
+    const half = Math.floor((maxLength - ellipsis.length) / 2);
+    return filePath.slice(0, half) + ellipsis + filePath.slice(-half);
 }
 
-// 當除錯模式開關狀態改變時
-document.addEventListener('DOMContentLoaded', () => {
-    const debugModeSwitch = document.getElementById('settings-debugmode');
-    if (debugModeSwitch) {
-        debugModeSwitch.addEventListener('change', (event) => {
-            toggleTerminal(event.target.checked);
-        });
-    }
-});
-
-loadConfig();
+// Initialize
+document.addEventListener('DOMContentLoaded', () => loadConfig());

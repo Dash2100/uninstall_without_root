@@ -1,145 +1,87 @@
-const terminal = document.getElementById('debug-terminal-area');
-const navBar = document.getElementById('main-nav-bar');
-const debugTerminalSubmit = document.getElementById('debug-terminal-submit');
-const terminalInput = document.getElementById('debug-terminal-input');
+// Cache terminal and UI elements
+const elements = {
+    terminal: document.getElementById('debug-terminal-area'),
+    output: document.getElementById('debug-terminal-output'),
+    navBar: document.getElementById('main-nav-bar'),
+    submitBtn: document.getElementById('debug-terminal-submit'),
+    input: document.getElementById('debug-terminal-input'),
+    pills: document.querySelectorAll('.floating-pill'),
+    pages: document.querySelectorAll('.page')
+};
 
-const floatingPill = document.getElementsByClassName('floating-pill');
-
-let terminalOutput;
-
+// Initialize terminal
 function initTerminal() {
     clearTerminal();
-    terminalOutput = document.getElementById('debug-terminal-output');
 }
-
+// Keep output scrolled to bottom
 function scrollToBottom() {
-    if (terminalOutput) {
-        terminalOutput.scrollTop = terminalOutput.scrollHeight;
-    }
+    elements.output.scrollTop = elements.output.scrollHeight;
 }
 
-function toggleTerminal(show) {
-    const pages = document.querySelectorAll('.page');
-
-    scrollToBottom();
-
-    if (show === undefined) {
-        show = terminal.style.display === 'none';
-    }
-
-    if (show) {
-        terminal.style.display = 'flex';
-        navBar.style.right = '40%';
-        navBar.style.width = '60%';
-
-        // apply for all floating pills
-        for (let i = 0; i < floatingPill.length; i++) {
-            floatingPill[i].style.right = '369px';
-        }
-
-        pages.forEach(page => {
-            page.style.width = '60%';
-        });
-    } else {
-        terminal.style.display = 'none';
-        navBar.style.right = '0';
-        navBar.style.width = '100%';
-
-        for (let i = 0; i < floatingPill.length; i++) {
-            floatingPill[i].style.right = '36px';
-        }
-
-        pages.forEach(page => {
-            page.style.width = '100%';
-        });
-    }
-
-    // 強制重繪
-    document.body.offsetHeight;
+// Show or hide terminal pane
+function toggleTerminal(show = elements.terminal.style.display === 'none') {
+    elements.terminal.style.display = show ? 'flex' : 'none';
+    elements.navBar.style.right = show ? '40%' : '0';
+    elements.navBar.style.width = show ? '60%' : '100%';
+    const pillRight = show ? '369px' : '36px';
+    elements.pills.forEach(pill => pill.style.right = pillRight);
+    elements.pages.forEach(page => page.style.width = show ? '60%' : '100%');
+    document.body.offsetHeight; // force repaint
 }
 
-// 清除終端
+// Clear terminal content
 function clearTerminal() {
-    document.getElementById('debug-terminal-output').textContent = '';
+    elements.output.textContent = '';
 }
 
-// Terminal output
+// Append a line to the terminal
 function appendToTerminal(text, type = 'response') {
-    if (!terminalOutput) return;
-
-    const newOutput = document.createElement('div');
-    newOutput.textContent = text;
-
-    switch (type) {
-        case 'command':
-            newOutput.classList.add('text-green-500', 'font-bold');
-            break;
-        case 'error':
-            newOutput.classList.add('text-red-500');
-            break;
-        case 'system':
-            newOutput.classList.add('text-blue-300', 'italic');
-            break;
-        default:
-            newOutput.classList.add('text-gray-300');
-    }
-
-    terminalOutput.appendChild(newOutput);
-
+    if (!elements.output) return;
+    const line = document.createElement('div');
+    line.textContent = text;
+    const classMap = {
+        command: ['text-green-500', 'font-bold'],
+        error: ['text-red-500'],
+        system: ['text-blue-300', 'italic'],
+        response: ['text-gray-300']
+    };
+    line.classList.add(...(classMap[type] || classMap.response));
+    elements.output.appendChild(line);
     scrollToBottom();
 }
 
-// ADB 命令
-function executeTerminalCommand(command) {
-    if (!command) return;
-    terminalInput.value = '';
-
-    appendToTerminal(`> ${command}`, 'command');
-
-    // if command starts with "adb"
-    if (command.startsWith('adb')) {
-        command = command.replace('adb ', '');
-    }
-
-    if (command === 'clear' || command === 'cls') {
+// Execute a command from the terminal input
+function executeTerminalCommand(cmd) {
+    if (!cmd) return;
+    elements.input.value = '';
+    appendToTerminal(`> ${cmd}`, 'command');
+    let command = cmd.startsWith('adb ') ? cmd.slice(4) : cmd;
+    if (['clear', 'cls'].includes(command)) {
         clearTerminal();
         return;
     }
-
-    if (command == 'shell') {
+    if (command === 'shell') {
         appendToTerminal('ADB shell not supported', 'error');
         return;
     }
-
-    // execute ADB command
     window.executeAdbCommand(command)
-        .then(response => {
-            appendToTerminal(response || '(No output)', 'response');
-        })
-        .catch(error => {
-            // parse error message
-            const errorMessage = error.toString();
-            const errorLines = errorMessage.split('\n');
-            const errorCode = errorLines[1].trim();
-
-            appendToTerminal(`${errorCode}`, 'error');
+        .then(res => appendToTerminal(res || '(No output)', 'response'))
+        .catch(err => {
+            const code = err.toString().split('\n')[1]?.trim() || err.toString();
+            appendToTerminal(code, 'error');
         });
 }
 
-
-debugTerminalSubmit.addEventListener('click', () => {
-    const command = terminalInput.value.trim();
-    executeTerminalCommand(command);
+// Event listeners
+elements.submitBtn.addEventListener('click', () => {
+    executeTerminalCommand(elements.input.value.trim())
 });
 
-terminalInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-        const command = terminalInput.value.trim();
-        executeTerminalCommand(command);
+elements.input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        executeTerminalCommand(elements.input.value.trim());
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    initTerminal();
-});
+document.addEventListener('DOMContentLoaded', initTerminal);

@@ -11,5 +11,6 @@ window.getTempFolderPath = () => ipcRenderer.invoke('get-temp-folder-path');
 window.formatTempFolder = () => ipcRenderer.invoke('format-temp-folder');
 window.renameAndMoveApk = () => ipcRenderer.invoke('rename-and-move-apk');
 window.checkFileExists = (filePath) => ipcRenderer.invoke('check-file-exists', filePath);
+window.breakWindow = () => ipcRenderer.invoke('break-window');
 
 console.log('Node.js integration enabled in renderer process');
