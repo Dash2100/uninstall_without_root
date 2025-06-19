@@ -48,7 +48,7 @@
             <mdui-top-app-bar-title class="ml-5 font-bold">應用程式管理</mdui-top-app-bar-title>
             </mdui-button-icon>
 
-            <mdui-button-icon variant="tonal" icon="wifi" class="mx-1"></mdui-button-icon>
+            <mdui-button-icon variant="tonal" icon="wifi" id="icon-wireless-connect" class="mx-1"></mdui-button-icon>
 
             <mdui-circular-progress id="icon-loading" class="mt-2 pl-2 w-10 h-6 hidden"></mdui-circular-progress>
 
@@ -110,20 +110,6 @@
         <!-- content -->
         <div class="p-8 pt-3">
             <div class="flex flex-col gap-4">
-                <!-- <mdui-card class="w-full h-20 flex">
-                    <mdui-avatar class="my-auto mx-4" icon="translate"></mdui-avatar>
-                    <div class="flex flex-col justify-center">
-                        <p class="text-lg">顯示語言</p>
-                        <p class="text-md text-gray-500">
-                            切換本工具的語言
-                        </p>
-                    </div>
-                    <mdui-segmented-button-group class="my-auto ml-auto mr-6" required selects="single" value="zh"
-                        id="settings-language">
-                        <mdui-segmented-button value="zh">中文</mdui-segmented-button>
-                        <mdui-segmented-button value="eng">ENG</mdui-segmented-button>
-                    </mdui-segmented-button-group>
-                </mdui-card> -->
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="contrast"></mdui-avatar>
                     <div class="flex flex-col justify-center">
@@ -158,12 +144,20 @@
                     <mdui-avatar class="my-auto mx-4" icon="folder"></mdui-avatar>
                     <div class="flex flex-col justify-center">
                         <p class="text-lg">提取 APK 儲存路徑</p>
-                        <p class="text-md text-gray-500 whitespace-nowrap truncate" id="settings-extract-path">
-                            Extract APK Path
-                        </p>
+                        <p class="text-md text-gray-500 whitespace-nowrap truncate" id="settings-extract-path"></p>
                     </div>
-                    <mdui-button-icon variant="filled" icon="search" class="my-auto ml-auto mr-6"
-                        id="settings-chapkpath"></mdui-button-icon>
+
+                    <!-- 打開路徑 -->
+                    <div class="flex items-center my-auto ml-auto mr-6 gap-3">
+                        <mdui-button-icon variant="filled" icon="folder" class="my-auto ml-auto"
+                            id="settings-openpath">
+                        </mdui-button-icon>
+
+                        <!-- 選擇路徑 -->
+                        <mdui-button-icon variant="filled" icon="edit" class="my-auto ml-auto"
+                            id="settings-chapkpath">
+                        </mdui-button-icon>
+                    </div>
                 </mdui-card>
             </div>
         </div>
@@ -292,7 +286,7 @@
             </span>
         </span>
         <mdui-button slot="action" variant="tonal" onclick="window.breakWindow();">不同意</mdui-button>
-        <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">同意條款</mdui-button>
+        <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">同意</mdui-button>
     </mdui-dialog>
 
     <mdui-dialog class="dialog-select-device">
@@ -304,7 +298,16 @@
         <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">確定</mdui-button>
     </mdui-dialog>
 
-    <mdui-dialog class="dialog-wireless-connect">
+    <mdui-dialog class="dialog-disconnect-confirm">
+        <span slot="headline" class="font-bold">斷開連接</span>
+        <span slot="description">
+            <p>目前已連接到設備，是否要斷開現有連接並開始無線連接？</p>
+        </span>
+        <mdui-button slot="action" variant="text" onclick="document.querySelector('.dialog-disconnect-confirm').open = false">取消</mdui-button>
+        <mdui-button slot="action" variant="tonal" onclick="confirmDisconnectAndWireless()">確認斷開</mdui-button>
+    </mdui-dialog>
+
+    <mdui-dialog close-on-overlay-click class="dialog-wireless-connect">
         <span slot="headline" class="font-bold">無線連接</span>
         <span slot="description">
             <p class="leading-loose">

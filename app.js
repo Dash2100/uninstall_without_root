@@ -46,21 +46,39 @@ function initADB() {
     return adb;
 }
 
+function getDefaultExtractPath() {
+    const docPath = app.getPath('documents');
+    const defaultPath = path.join(docPath, 'ADBExtracted');
+
+    // create folder if it doesn't exist
+    fs.promises.mkdir(defaultPath, { recursive: true })
+        .then(() => console.log('[File] Default extract path ensured:', defaultPath))
+        .catch(err => console.error('[File] Error ensuring default extract path:', err));
+
+    console.log('[File] getDefaultExtractPath:', defaultPath);
+
+    return defaultPath;
+}
+
 // Default config
 const defaultConfig = {
-    language: 'zh',
     darkmode: true,
     delete_data: false,
     debug_mode: false,
-    extrect_path: 'extrect_apks'
+    extract_path: getDefaultExtractPath()
 };
 
 // Write default config
 async function resetConfig() {
     console.log('[Config] resetConfig: writing default config to:', configPath);
+
     await fs.promises.mkdir(path.dirname(configPath), { recursive: true });
     await fs.promises.writeFile(configPath, JSON.stringify(defaultConfig, null, 2));
+
     console.log('[Config] default config written');
+
+    getDefaultExtractPath(); // Ensure default extract path exists
+
     return defaultConfig;
 }
 
@@ -186,7 +204,7 @@ ipcMain.handle('rename-and-move-apk', async () => {
     console.log('[File] rename-and-move-apk: moving from temp to dest');
     const cfg = await readConfig();
 
-    let dest = cfg.extrect_path;
+    let dest = cfg.extract_path;
     console.log('[Config] dest from config:', dest);
 
     if (!path.isAbsolute(dest)) {

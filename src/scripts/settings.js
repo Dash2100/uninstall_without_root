@@ -1,25 +1,24 @@
 // Select settings elements
 const settingsEls = {
-    language: document.getElementById('settings-language'),
     darkMode: document.getElementById('settings-darkmode'),
     appData: document.getElementById('settings-appdata'),
     debugMode: document.getElementById('settings-debugmode'),
     chAPKPath: document.getElementById('settings-chapkpath'),
+    openAPKPath: document.getElementById('settings-openpath'),
     extractPathText: document.getElementById('settings-extract-path'),
     resetButton: document.getElementById('settings-reset'),
 };
 
 // Load configuration and update UI
 async function loadConfig() {
-    const { language, darkmode, delete_data, debug_mode, extrect_path } =
+    const { darkmode, delete_data, debug_mode, extract_path } =
         await window.getConfig();
-    console.log('[config] Loaded config:', { language, darkmode, delete_data, debug_mode, extrect_path });
+    console.log('[config] Loaded config:', { darkmode, delete_data, debug_mode, extract_path });
 
-    // settingsEls.language.value = language;
     settingsEls.darkMode.checked = darkmode;
     settingsEls.appData.checked = delete_data;
     settingsEls.debugMode.checked = debug_mode;
-    settingsEls.extractPathText.innerText = truncateFilePath(extrect_path, 35);
+    settingsEls.extractPathText.innerText = truncateFilePath(extract_path, 35);
 
     document.body.classList.toggle('mdui-theme-dark', darkmode);
     toggleTerminal(debug_mode);
@@ -31,17 +30,6 @@ const updateConfig = (key, value) =>
         console.log('[config] Updated config:', cfg);
         return cfg;
     });
-
-// Handlers for settings changes
-// settingsEls.language.addEventListener('change', (e) => {
-//     const val = e.target.value;
-//     if (val) {
-//         updateConfig('language', val);
-//         appLang = val;
-//     } else {
-//         setTimeout(() => (settingsEls.language.value = appLang), 1);
-//     }
-// });
 
 settingsEls.darkMode.addEventListener('change', (e) => {
     const checked = e.target.checked;
@@ -67,7 +55,7 @@ settingsEls.chAPKPath.addEventListener('click', async () => {
         });
         if (!canceled && filePaths.length) {
             const selected = filePaths[0];
-            await updateConfig('extrect_path', selected);
+            await updateConfig('extract_path', selected);
             settingsEls.extractPathText.innerText = truncateFilePath(selected, 35);
         }
     } catch (err) {
@@ -89,6 +77,24 @@ settingsEls.resetButton.addEventListener('click', () => {
             });
         },
     });
+});
+
+settingsEls.openAPKPath.addEventListener('click', async () => {
+    try {
+        const extractPath = await window.getConfig().then(cfg => cfg.extract_path);
+        if (extractPath) {
+            const exists = await window.checkFileExists(extractPath);
+            if (exists) {
+                await window.openFilePath(extractPath);
+            } else {
+                showSnackAlert('提取路徑不存在，請先選擇一個有效的資料夾');
+            }
+        } else {
+            showSnackAlert('提取路徑未設定，請先設定提取路徑');
+        }
+    } catch (err) {
+        console.error('Error opening APK path:', err);
+    }
 });
 
 // Truncate long file paths

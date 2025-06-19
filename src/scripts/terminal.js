@@ -20,13 +20,23 @@ function scrollToBottom() {
 
 // Show or hide terminal pane
 function toggleTerminal(show = elements.terminal.style.display === 'none') {
+    const pillRight = show ? '369px' : '36px';
+
     elements.terminal.style.display = show ? 'flex' : 'none';
     elements.navBar.style.right = show ? '40%' : '0';
     elements.navBar.style.width = show ? '60%' : '100%';
-    const pillRight = show ? '369px' : '36px';
+    
     elements.pills.forEach(pill => pill.style.right = pillRight);
     elements.pages.forEach(page => page.style.width = show ? '60%' : '100%');
-    document.body.offsetHeight; // force repaint
+    document.body.offsetHeight;
+
+    scrollToBottom();
+    
+    if (show) {
+        elements.input.focus();
+    } else {
+        elements.input.blur();
+    }
 }
 
 // Clear terminal content

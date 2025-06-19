@@ -1,5 +1,7 @@
-// Electron and DOM element references
 const { app } = require('electron');
+
+
+// DOM element references
 const els = {
     // overlay
     appLoading: document.getElementById('app-loading'),
@@ -8,10 +10,12 @@ const els = {
     dialogDeleteApp: document.querySelector('.dialog-delete-app'),
     dialogSelectDevice: document.querySelector('.dialog-select-device'),
     dialogWirelessConnect: document.querySelector('.dialog-wireless-connect'),
+    dialogDisconnectConfirm: document.querySelector('.dialog-disconnect-confirm'),
     // card
     appCardTemplate: document.getElementById('app-card-template'),
     appInfoTemplate: document.getElementById('app-info-template'),
     // navbar icons
+    iconWirelessConnect: document.getElementById('icon-wireless-connect'),
     iconConnected: document.getElementById('icon-connected'),
     iconDisconnected: document.getElementById('icon-disconnected'),
     iconLoading: document.getElementById('icon-loading'),
@@ -84,7 +88,7 @@ async function getDevice() {
             return;
         }
 
-        // 解析裝置列表
+        // devices list
         const devices = [];
         for (const line of lines) {
             const [id, status] = line.split('\t');
@@ -100,7 +104,7 @@ async function getDevice() {
             return;
         }
 
-        // 如果只有一個裝置，直接連接
+        // automatically connect if only one is available
         if (devices.length === 1) {
             selectedDevice = devices[0].id;
             isConnected = true;
@@ -110,7 +114,7 @@ async function getDevice() {
             return;
         }
 
-        // 多個裝置時顯示選擇對話框
+        // if multiple devices are found, show selection dialog
         connectedDevices = devices;
         await showDeviceSelectionDialog();
 
@@ -124,18 +128,14 @@ async function getDevice() {
     }
 }
 
-// 新增：顯示裝置選擇對話框
 async function showDeviceSelectionDialog() {
     const dialog = els.dialogSelectDevice;
     const menu = dialog.querySelector('mdui-menu');
 
-    // 清空現有選項
     menu.innerHTML = '';
 
-    // 為每個裝置添加選項
     for (const device of connectedDevices) {
         try {
-            // 獲取裝置型號
             const modelOutput = await runADBcommand(`-s ${device.id} shell getprop ro.product.model`);
             const model = modelOutput.trim() || '未知型號';
 
@@ -154,14 +154,12 @@ async function showDeviceSelectionDialog() {
         }
     }
 
-    // 設置確認按鈕事件
     const confirmBtn = dialog.querySelector('mdui-button[slot="action"]');
     confirmBtn.onclick = () => confirmDeviceSelection();
 
     dialog.open = true;
 }
 
-// 新增：確認裝置選擇
 function confirmDeviceSelection() {
     const dialog = els.dialogSelectDevice;
     const menu = dialog.querySelector('mdui-menu');
@@ -178,11 +176,9 @@ function confirmDeviceSelection() {
     showSnackAlert(`已連接到設備: ${selectedDevice}`);
     dialog.open = false;
 
-    // 連接後刷新應用程式列表
     refreshAppList();
 }
 
-// 修改 runADBcommand 函數以支援指定裝置
 async function runADBcommandWithDevice(command) {
     const fullCommand = selectedDevice && !command.startsWith('-s')
         ? `-s ${selectedDevice} ${command}`
@@ -402,24 +398,46 @@ els.searchInput.addEventListener('input', () => {
     renderAppList(term ? filterApps(appsList, term) : appsList);
 });
 
+els.iconWirelessConnect.addEventListener('click', () => {
+    if (isConnected) {
+        els.dialogDisconnectConfirm.open = true;
+        return;
+    }
+    els.dialogWirelessConnect.open = true;
+});
+
 function confirmWarning() {
     els.dialogWarning.open = false;
 
     getDevice();
 }
 
-// 修改初始化函數
+function confirmDisconnectAndWireless() {
+    els.dialogDisconnectConfirm.open = false;
+    
+    isConnected = false;
+    selectedDevice = null;
+    toggleConnectionIcon(false, false);
+    
+    clearAppList();
+    
+    showSnackAlert('已斷開現有連接');
+    
+    els.dialogWirelessConnect.open = true;
+}
+
+// initialize the app
 function initApp() {
-    // 頁面 fase in
+    // page elements fade-in
     els.appLoading.classList.remove('app-loading-showing');
 
-    // 預設分頁
+    // default page
     switchPage('appList');
 
-    // 面責聲明
+    // disclaimer
     // els.dialogWarning.open = true;
 
-    // 移除自動顯示裝置選擇對話框
+    // remove automatic device selection dialog
     getDevice();
 
     // els.dialogWirelessConnect.open = true;

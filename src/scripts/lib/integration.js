@@ -1,5 +1,4 @@
 const { ipcRenderer } = require('electron');
-const path = require('path');
 
 window.executeAdbCommand = (command) => ipcRenderer.invoke('execute-adb-command', command);
 window.showOpenDialog = (options) => ipcRenderer.invoke('dialog:showOpenDialog', options);
@@ -12,5 +11,3 @@ window.formatTempFolder = () => ipcRenderer.invoke('format-temp-folder');
 window.renameAndMoveApk = () => ipcRenderer.invoke('rename-and-move-apk');
 window.checkFileExists = (filePath) => ipcRenderer.invoke('check-file-exists', filePath);
 window.breakWindow = () => ipcRenderer.invoke('break-window');
-
-console.log('Node.js integration enabled in renderer process');
