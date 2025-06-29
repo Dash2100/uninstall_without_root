@@ -250,13 +250,102 @@ function filterApps({ apps }, term) {
     return filtered;
 }
 
+let virtualScrollData = {
+    allApps: [],
+    itemHeight: 80,
+    containerHeight: 0,
+    scrollTop: 0,
+    visibleCount: 0,
+    bufferSize: 5,
+    startIndex: 0,
+    endIndex: 0
+};
+
+function initVirtualScroll() {
+    const container = els.appListContainer;
+    virtualScrollData.containerHeight = container.clientHeight || 600;
+    virtualScrollData.visibleCount = Math.ceil(virtualScrollData.containerHeight / virtualScrollData.itemHeight);
+    
+    container.addEventListener('scroll', handleVirtualScroll);
+    window.addEventListener('resize', () => {
+        virtualScrollData.containerHeight = container.clientHeight || 600;
+        virtualScrollData.visibleCount = Math.ceil(virtualScrollData.containerHeight / virtualScrollData.itemHeight);
+        renderVirtualAppList();
+    });
+}
+
+let scrollTimeout = null;
+function handleVirtualScroll() {
+    if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+    }
+    
+    scrollTimeout = setTimeout(() => {
+        virtualScrollData.scrollTop = els.appListContainer.scrollTop;
+        renderVirtualAppList();
+    }, 16); // ~60fps
+}
+
 function renderAppList({ apps }) {
     clearPlaceholders();
+    
+    virtualScrollData.allApps = [
+        ...Object.values(apps.user).map(app => ({ ...app, type: '使用者程式' })),
+        ...Object.values(apps.system).map(app => ({ ...app, type: '系統程式' }))
+    ];
+    
+    if (!virtualScrollData.containerHeight) {
+        initVirtualScroll();
+    }
+    
+    renderVirtualAppList();
+}
+
+function renderVirtualAppList() {
+    const { allApps, itemHeight, visibleCount, bufferSize, scrollTop } = virtualScrollData;
+    
+    if (allApps.length === 0) {
+        els.appListContainer.innerHTML = '';
+        return;
+    }
+    
+    const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - bufferSize);
+    const endIndex = Math.min(allApps.length, startIndex + visibleCount + bufferSize * 2);
+    
+    virtualScrollData.startIndex = startIndex;
+    virtualScrollData.endIndex = endIndex;
+    
+    const totalHeight = allApps.length * itemHeight;
+    const offsetY = startIndex * itemHeight;
+    
     els.appListContainer.innerHTML = '';
+    els.appListContainer.style.height = `${virtualScrollData.containerHeight}px`;
+    els.appListContainer.style.position = 'relative';
+    els.appListContainer.style.overflow = 'auto';
+    
+    const scrollContainer = document.createElement('div');
+    scrollContainer.style.height = `${totalHeight}px`;
+    scrollContainer.style.position = 'relative';
+    
+    const visibleContainer = document.createElement('div');
+    visibleContainer.style.transform = `translateY(${offsetY}px)`;
+    visibleContainer.style.position = 'absolute';
+    visibleContainer.style.top = '0';
+    visibleContainer.style.left = '0';
+    visibleContainer.style.right = '0';
+    
     const frag = document.createDocumentFragment();
-    Object.values(apps.user).forEach(app => frag.appendChild(createAppCard(app, '使用者程式')));
-    Object.values(apps.system).forEach(app => frag.appendChild(createAppCard(app, '系統程式')));
-    els.appListContainer.appendChild(frag);
+    for (let i = startIndex; i < endIndex; i++) {
+        const app = allApps[i];
+        const card = createAppCard(app, app.type);
+        card.style.height = `${itemHeight}px`;
+        card.style.boxSizing = 'border-box';
+        frag.appendChild(card);
+    }
+    
+    visibleContainer.appendChild(frag);
+    scrollContainer.appendChild(visibleContainer);
+    els.appListContainer.appendChild(scrollContainer);
 }
 
 function createAppCard(app, type) {
@@ -272,6 +361,7 @@ function createAppCard(app, type) {
     const wrapper = document.createElement('template');
     wrapper.innerHTML = html.trim();
     const card = wrapper.content.firstChild;
+    card.classList.add('app-card');
     card.addEventListener('click', () => viewAppInfo(app.package_name));
     return card;
 }
