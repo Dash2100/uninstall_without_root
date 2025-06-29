@@ -63,9 +63,10 @@
 
         <!-- search bar -->
         <div class="w-full flex gap-3 justify-center items-center py-4">
-            <mdui-text-field icon="search" label="查詢應用程式"
-                class="w-9/12 max-w-2xl rounded-full overflow-hidden shadow-none" id="search-input">
+            <mdui-text-field icon="search" clearable label="查詢應用程式"
+                class="w-8/12 max-w-2xl rounded-full overflow-hidden shadow-none" id="search-input">
             </mdui-text-field>
+            <mdui-button-icon variant="filled" icon="search" class="h-12 w-12" id="button-search"></mdui-button-icon>
             <mdui-button-icon variant="filled" icon="refresh" class="h-12 w-12"
                 id="button-applist-refresh"></mdui-button-icon>
         </div>
@@ -149,13 +150,11 @@
 
                     <!-- 打開路徑 -->
                     <div class="flex items-center my-auto ml-auto mr-6 gap-3">
-                        <mdui-button-icon variant="filled" icon="folder" class="my-auto ml-auto"
-                            id="settings-openpath">
+                        <mdui-button-icon variant="filled" icon="folder" class="my-auto ml-auto" id="settings-openpath">
                         </mdui-button-icon>
 
                         <!-- 選擇路徑 -->
-                        <mdui-button-icon variant="filled" icon="edit" class="my-auto ml-auto"
-                            id="settings-chapkpath">
+                        <mdui-button-icon variant="filled" icon="edit" class="my-auto ml-auto" id="settings-chapkpath">
                         </mdui-button-icon>
                     </div>
                 </mdui-card>
@@ -303,7 +302,8 @@
         <span slot="description">
             <p>目前已連接到設備，是否要斷開現有連接並開始無線連接？</p>
         </span>
-        <mdui-button slot="action" variant="text" onclick="document.querySelector('.dialog-disconnect-confirm').open = false">取消</mdui-button>
+        <mdui-button slot="action" variant="text"
+            onclick="document.querySelector('.dialog-disconnect-confirm').open = false">取消</mdui-button>
         <mdui-button slot="action" variant="tonal" onclick="confirmDisconnectAndWireless()">確認斷開</mdui-button>
     </mdui-dialog>
 

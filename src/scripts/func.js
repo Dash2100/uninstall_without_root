@@ -25,6 +25,7 @@ const els = {
     appListDisconnected: document.getElementById('app-list-disconnected'),
     // search bar
     searchInput: document.getElementById('search-input'),
+    searchBtn: document.getElementById('button-search'),
     refreshBtn: document.getElementById('button-applist-refresh')
 };
 
@@ -234,14 +235,18 @@ async function fetchApps() {
 }
 
 function filterApps({ apps }, term) {
+    if (!term) return { apps };
+    
     const filtered = { apps: { user: {}, system: {} } };
-    Object.keys(apps).forEach(type => {
-        Object.values(apps[type]).forEach(app => {
-            if (app.package_name.toLowerCase().includes(term)) {
+    const lowerTerm = term.toLowerCase();
+    
+    for (const type of Object.keys(apps)) {
+        for (const app of Object.values(apps[type])) {
+            if (app.package_name.toLowerCase().includes(lowerTerm)) {
                 filtered.apps[type][app.package_name] = app;
             }
-        });
-    });
+        }
+    }
     return filtered;
 }
 
@@ -392,10 +397,25 @@ function downloadAPK(pkg, dialog) {
 
 // Event Listeners
 els.refreshBtn.addEventListener('click', () => isConnected && refreshAppList());
-els.searchInput.addEventListener('input', () => {
+function performSearch() {
     if (!isConnected) return;
     const term = els.searchInput.value.trim().toLowerCase();
     renderAppList(term ? filterApps(appsList, term) : appsList);
+}
+
+
+els.searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
+
+els.searchBtn.addEventListener('click', performSearch);
+
+els.searchInput.addEventListener('clear', () => {
+    if (isConnected) {
+        renderAppList(appsList);
+    }
 });
 
 els.iconWirelessConnect.addEventListener('click', () => {

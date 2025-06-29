@@ -6,6 +6,29 @@ mdui-text-field::part(icon) {
     margin-left: 5px;
 }
 
+#search-input::part(clear-button) {
+    margin-right: 12px;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#search-input::part(clear-button):hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#search-input:focus-within::part(clear-button),
+#search-input[value]::part(clear-button) {
+    opacity: 0.7;
+    transform: scale(1);
+}
+
+#search-input[value]::part(clear-button):hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
 mdui-menu-item{
     padding: 10px 0;
 }
