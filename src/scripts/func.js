@@ -25,6 +25,7 @@ const els = {
     appListDisconnected: document.getElementById('app-list-disconnected'),
     // search bar
     searchInput: document.getElementById('search-input'),
+    searchClearBtn: document.getElementById('search-clear-btn'),
     refreshBtn: document.getElementById('button-applist-refresh')
 };
 
@@ -272,17 +273,23 @@ function createAppCard(app, type) {
 }
 
 async function viewAppInfo(pkg) {
+    // 先顯示對話框，顯示空白狀態
+    const enabled = !disabledApps.includes(pkg);
+    showInfoDialog(pkg, '', '', '', enabled, true);
+    
     try {
         const command = selectedDevice
             ? `-s ${selectedDevice} shell dumpsys package ${pkg}`
             : `shell dumpsys package ${pkg}`;
         const info = await runADBcommand(command);
         const { versionName, versionCode, lastUpdateTime } = parseAppInfo(info);
-        const enabled = !disabledApps.includes(pkg);
-        showInfoDialog(pkg, versionName, versionCode, lastUpdateTime, enabled);
+        
+        // 更新對話框內容
+        updateInfoDialog(pkg, versionName, versionCode, lastUpdateTime, enabled);
     } catch (err) {
         console.error('Get package info error:', err);
-        showInfoDialog(pkg, '未知', '未知', '未知', false);
+        // 更新對話框顯示錯誤狀態
+        updateInfoDialog(pkg, '未知', '未知', '未知', enabled);
     }
 }
 
@@ -294,7 +301,7 @@ function parseAppInfo(info) {
     };
 }
 
-function showInfoDialog(pkg, vName, vCode, updated, enabled) {
+function showInfoDialog(pkg, vName, vCode, updated, enabled, isLoading = false) {
     const html = els.appInfoTemplate.innerHTML
         .replace(/{{app.packageName}}/g, pkg)
         .replace(/{{app.version}}/g, `${vName} (${vCode})`)
@@ -303,24 +310,74 @@ function showInfoDialog(pkg, vName, vCode, updated, enabled) {
     const div = document.createElement('div');
     div.innerHTML = html;
     const dialog = div.querySelector('.dialog-appinfo');
+    
+    // 為對話框設置ID以便後續更新
+    dialog.id = `dialog-appinfo-${pkg.replace(/\./g, '-')}`;
+    
     document.body.appendChild(dialog);
-    setupDialogButtons(dialog, pkg, enabled);
+    setupDialogButtons(dialog, pkg, enabled, isLoading);
     setTimeout(() => dialog.open = true, 1);
 }
 
-function setupDialogButtons(dialog, pkg, enabled) {
+function updateInfoDialog(pkg, vName, vCode, updated, enabled) {
+    const dialogId = `dialog-appinfo-${pkg.replace(/\./g, '-')}`;
+    const dialog = document.getElementById(dialogId);
+    
+    if (!dialog) return;
+    
+    // 更新對話框內容
+    const description = dialog.querySelector('[slot="description"]');
+    if (description) {
+        description.innerHTML = `
+            <div class="flex flex-col gap-2 max-w-full overflow-hidden">
+                <p class="break-words">APP包名: <span class="break-all">${pkg}</span></p>
+                <p class="break-words">APP版本: <span class="break-all">${vName} (${vCode})</span></p>
+                <p class="break-words">最後更新: <span class="break-all">${updated}</span></p>
+                <p class="break-words">啟用狀態: <span class="break-all">${enabled ? '啟用中' : '已停用'}</span></p>
+            </div>
+        `;
+    }
+    
+    // 重新設置按鈕狀態（移除載入狀態）
+    setupDialogButtons(dialog, pkg, enabled, false);
+}
+
+function setupDialogButtons(dialog, pkg, enabled, isLoading = false) {
     const btns = {
         enable: dialog.querySelector("mdui-button[icon='power_settings_new']"),
         disable: dialog.querySelector("mdui-button[icon='power_off']"),
         extract: dialog.querySelector("mdui-button[icon='download']"),
         delete: dialog.querySelector("mdui-button[icon='delete']")
     };
-    btns.enable.disabled = enabled;
-    btns.disable.disabled = !enabled;
-    btns.enable.addEventListener('click', () => toggleAppState(pkg, true, dialog));
-    btns.disable.addEventListener('click', () => toggleAppState(pkg, false, dialog));
-    btns.extract.addEventListener('click', () => downloadAPK(pkg, dialog));
-    btns.delete.addEventListener('click', () => promptDelete(dialog, pkg));
+    
+    if (isLoading) {
+        // 載入狀態時禁用所有按鈕
+        Object.values(btns).forEach(btn => {
+            if (btn) btn.disabled = true;
+        });
+    } else {
+        // 正常狀態 - 只有啟用/停用按鈕根據狀態禁用，其他按鈕保持啟用
+        btns.enable.disabled = enabled;
+        btns.disable.disabled = !enabled;
+        btns.extract.disabled = false;
+        btns.delete.disabled = false;
+        
+        // 清除之前的事件監聽器並重新添加
+        const newEnable = btns.enable.cloneNode(true);
+        const newDisable = btns.disable.cloneNode(true);
+        const newExtract = btns.extract.cloneNode(true);
+        const newDelete = btns.delete.cloneNode(true);
+        
+        btns.enable.parentNode.replaceChild(newEnable, btns.enable);
+        btns.disable.parentNode.replaceChild(newDisable, btns.disable);
+        btns.extract.parentNode.replaceChild(newExtract, btns.extract);
+        btns.delete.parentNode.replaceChild(newDelete, btns.delete);
+        
+        newEnable.addEventListener('click', () => toggleAppState(pkg, true, dialog));
+        newDisable.addEventListener('click', () => toggleAppState(pkg, false, dialog));
+        newExtract.addEventListener('click', () => downloadAPK(pkg, dialog));
+        newDelete.addEventListener('click', () => promptDelete(dialog, pkg));
+    }
 }
 
 async function toggleAppState(pkg, enable, dialog) {
@@ -392,10 +449,28 @@ function downloadAPK(pkg, dialog) {
 
 // Event Listeners
 els.refreshBtn.addEventListener('click', () => isConnected && refreshAppList());
+
 els.searchInput.addEventListener('input', () => {
     if (!isConnected) return;
     const term = els.searchInput.value.trim().toLowerCase();
+    
+    // 控制清除按鈕的顯示
+    if (term) {
+        els.searchClearBtn.classList.remove('hidden');
+    } else {
+        els.searchClearBtn.classList.add('hidden');
+    }
+    
     renderAppList(term ? filterApps(appsList, term) : appsList);
+});
+
+// 清除搜尋按鈕事件監聽器
+els.searchClearBtn.addEventListener('click', () => {
+    els.searchInput.value = '';
+    els.searchClearBtn.classList.add('hidden');
+    if (isConnected) {
+        renderAppList(appsList);
+    }
 });
 
 els.iconWirelessConnect.addEventListener('click', () => {

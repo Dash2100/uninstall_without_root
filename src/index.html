@@ -63,9 +63,15 @@
 
         <!-- search bar -->
         <div class="w-full flex gap-3 justify-center items-center py-4">
-            <mdui-text-field icon="search" label="查詢應用程式"
                 class="w-9/12 max-w-2xl rounded-full overflow-hidden shadow-none" id="search-input">
-            </mdui-text-field>
+            <div class="relative w-9/12 max-w-2xl">
+                <mdui-text-field icon="search" label="查詢應用程式"
+                    class="w-full rounded-full overflow-hidden shadow-none" id="search-input">
+                </mdui-text-field>
+                <mdui-button-icon variant="standard" icon="close" class="absolute right-4 top-1/2 transform -translate-y-1/2 w-8 h-8 hidden"
+                    id="search-clear-btn" title="清除搜尋">
+                </mdui-button-icon>
+            </div>
             <mdui-button-icon variant="filled" icon="refresh" class="h-12 w-12"
                 id="button-applist-refresh"></mdui-button-icon>
         </div>
@@ -369,11 +375,11 @@
             <mdui-top-app-bar-title class="ml-4">應用程式資訊</mdui-top-app-bar-title>
         </mdui-top-app-bar>
         <span slot="description">
-            <div class="flex flex-col gap-2">
-                <p>APP包名: {{app.packageName}}</p>
-                <p>APP版本: {{app.version}}</p>
-                <p>最後更新: {{app.latestUpdate}}</p>
-                <p>啟用狀態: {{app.isEnable}}</p>
+            <div class="flex flex-col gap-2 max-w-full overflow-hidden">
+                <p class="break-words">APP包名: <span class="break-all">{{app.packageName}}</span></p>
+                <p class="break-words">APP版本: <span class="break-all">{{app.version}}</span></p>
+                <p class="break-words">最後更新: <span class="break-all">{{app.latestUpdate}}</span></p>
+                <p class="break-words">啟用狀態: <span class="break-all">{{app.isEnable}}</span></p>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">
