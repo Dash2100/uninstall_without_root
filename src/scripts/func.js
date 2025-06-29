@@ -510,7 +510,7 @@ els.searchInput.addEventListener('clear', () => {
 
 els.iconWirelessConnect.addEventListener('click', () => {
     if (isConnected) {
-        els.dialogDisconnectConfirm.open = true;
+        showDisconnectDialog(true);
         return;
     }
     els.dialogWirelessConnect.open = true;
@@ -520,6 +520,41 @@ function confirmWarning() {
     els.dialogWarning.open = false;
 
     getDevice();
+}
+
+function handleConnectionClick() {
+    if (isConnected) {
+        showDisconnectDialog(false);
+    } else {
+        getDevice();
+    }
+}
+
+function showDisconnectDialog(openWirelessAfter = false) {
+    const description = document.getElementById('disconnect-description');
+    const confirmBtn = document.getElementById('confirm-disconnect-btn');
+    
+    if (openWirelessAfter) {
+        description.textContent = '目前已連接到設備，是否要斷開現有連接並開始無線連接？';
+        confirmBtn.onclick = () => confirmDisconnectAndWireless();
+    } else {
+        description.textContent = '目前已連接到設備，是否要斷開現有連接？';
+        confirmBtn.onclick = () => confirmDisconnect();
+    }
+    
+    els.dialogDisconnectConfirm.open = true;
+}
+
+function confirmDisconnect() {
+    els.dialogDisconnectConfirm.open = false;
+    
+    isConnected = false;
+    selectedDevice = null;
+    toggleConnectionIcon(false, false);
+    
+    clearAppList();
+    
+    showSnackAlert('已斷開現有連接');
 }
 
 function confirmDisconnectAndWireless() {

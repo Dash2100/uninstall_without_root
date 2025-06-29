@@ -52,11 +52,11 @@
 
             <mdui-circular-progress id="icon-loading" class="mt-2 pl-2 w-10 h-6 hidden"></mdui-circular-progress>
 
-            <mdui-button-icon variant="tonal" icon="link" id="icon-connected" class="mx-1 hidden" onclick="getDevice();"
+            <mdui-button-icon variant="tonal" icon="link" id="icon-connected" class="mx-1 hidden" onclick="handleConnectionClick();"
                 title="已連接裝置">
             </mdui-button-icon>
 
-            <mdui-button-icon variant="tonal" icon="link_off" id="icon-disconnected" class="mx-1" onclick="getDevice();"
+            <mdui-button-icon variant="tonal" icon="link_off" id="icon-disconnected" class="mx-1" onclick="handleConnectionClick();"
                 title="尚未連接裝置">
             </mdui-button-icon>
         </mdui-top-app-bar>
@@ -300,11 +300,11 @@
     <mdui-dialog class="dialog-disconnect-confirm">
         <span slot="headline" class="font-bold">斷開連接</span>
         <span slot="description">
-            <p>目前已連接到設備，是否要斷開現有連接並開始無線連接？</p>
+            <p id="disconnect-description">目前已連接到設備，是否要斷開現有連接？</p>
         </span>
         <mdui-button slot="action" variant="text"
             onclick="document.querySelector('.dialog-disconnect-confirm').open = false">取消</mdui-button>
-        <mdui-button slot="action" variant="tonal" onclick="confirmDisconnectAndWireless()">確認斷開</mdui-button>
+        <mdui-button slot="action" variant="tonal" id="confirm-disconnect-btn">確認斷開</mdui-button>
     </mdui-dialog>
 
     <mdui-dialog close-on-overlay-click class="dialog-wireless-connect">
