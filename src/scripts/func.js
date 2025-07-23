@@ -50,6 +50,7 @@ function toggleConnectionIcon(connected, loading = false) {
 function clearAppList() {
     els.appListContainer.innerHTML = '';
     els.appListContainer.style.display = 'none';
+    els.appListDisconnected.style.display = 'flex';
 }
 
 function clearPlaceholders() {
@@ -62,6 +63,29 @@ function showLoading() {
     els.appListContainer.style.display = 'none';
     els.appListDisconnected.style.display = 'none';
     els.appListLoading.style.display = 'flex';
+}
+
+// Handle device disconnection
+function handleDeviceDisconnected() {
+    isConnected = false;
+    isConnecting = false;
+    selectedDevice = null;
+    toggleConnectionIcon(false, false);
+    clearAppList();
+    
+    // Close any open app info dialogs
+    const appInfoDialogs = document.querySelectorAll('.dialog-appinfo');
+    appInfoDialogs.forEach(dialog => {
+        dialog.open = false;
+        // Remove dialog from DOM after closing
+        setTimeout(() => {
+            if (dialog.parentNode) {
+                dialog.parentNode.removeChild(dialog);
+            }
+        }, 100);
+    });
+    
+    showSnackAlert('設備已斷開連接，請重新連接');
 }
 
 // Core Logic
@@ -362,11 +386,22 @@ function createAppCard(app, type) {
     wrapper.innerHTML = html.trim();
     const card = wrapper.content.firstChild;
     card.classList.add('app-card');
-    card.addEventListener('click', () => viewAppInfo(app.package_name));
+    card.addEventListener('click', () => {
+        // Only open app info if device is connected
+        if (isConnected) {
+            viewAppInfo(app.package_name);
+        }
+    });
     return card;
 }
 
 async function viewAppInfo(pkg) {
+    // Check if device is connected before showing app info
+    if (!isConnected) {
+        showSnackAlert('設備未連接，無法查看應用程式信息');
+        return;
+    }
+    
     try {
         const command = selectedDevice
             ? `-s ${selectedDevice} shell dumpsys package ${pkg}`
@@ -377,7 +412,10 @@ async function viewAppInfo(pkg) {
         showInfoDialog(pkg, versionName, versionCode, lastUpdateTime, enabled);
     } catch (err) {
         console.error('Get package info error:', err);
-        showInfoDialog(pkg, '未知', '未知', '未知', false);
+        // Only show dialog if device is still connected
+        if (isConnected) {
+            showInfoDialog(pkg, '未知', '未知', '未知', false);
+        }
     }
 }
 
@@ -390,6 +428,12 @@ function parseAppInfo(info) {
 }
 
 function showInfoDialog(pkg, vName, vCode, updated, enabled) {
+    // Check if device is still connected before showing dialog
+    if (!isConnected) {
+        console.log('Device disconnected, not showing app info dialog');
+        return;
+    }
+    
     const html = els.appInfoTemplate.innerHTML
         .replace(/{{app.packageName}}/g, pkg)
         .replace(/{{app.version}}/g, `${vName} (${vCode})`)
@@ -400,7 +444,15 @@ function showInfoDialog(pkg, vName, vCode, updated, enabled) {
     const dialog = div.querySelector('.dialog-appinfo');
     document.body.appendChild(dialog);
     setupDialogButtons(dialog, pkg, enabled);
-    setTimeout(() => dialog.open = true, 1);
+    setTimeout(() => {
+        // Double check connection status before opening dialog
+        if (isConnected) {
+            dialog.open = true;
+        } else {
+            // Remove dialog if device disconnected while waiting
+            document.body.removeChild(dialog);
+        }
+    }, 1);
 }
 
 function setupDialogButtons(dialog, pkg, enabled) {
@@ -419,6 +471,13 @@ function setupDialogButtons(dialog, pkg, enabled) {
 }
 
 async function toggleAppState(pkg, enable, dialog) {
+    // Check if device is connected before performing operations
+    if (!isConnected) {
+        showSnackAlert('設備未連接，無法執行操作');
+        dialog.open = false;
+        return;
+    }
+    
     const action = enable ? enableAPP : disableAPP;
     try {
         await action(pkg);
@@ -430,7 +489,9 @@ async function toggleAppState(pkg, enable, dialog) {
         await refreshAppList();
     } catch (err) {
         console.error(`${enable ? 'Enable' : 'Disable'} app error:`, err);
-        showSnackAlert(`錯誤：${enable ? '啟用' : '停用'}應用程式失敗`);
+        if (isConnected) {
+            showSnackAlert(`錯誤：${enable ? '啟用' : '停用'}應用程式失敗`);
+        }
     }
 }
 
@@ -448,6 +509,12 @@ function promptDelete(curDialog, pkg) {
 }
 
 async function uninstallApp(pkg) {
+    // Check if device is connected before uninstalling
+    if (!isConnected) {
+        showSnackAlert('設備未連接，無法執行卸載操作');
+        return;
+    }
+    
     const delData = document.getElementById('delete-app-data').checked;
     showSnackAlert(`正在刪除應用程式: ${pkg}...`);
     try {
@@ -456,11 +523,19 @@ async function uninstallApp(pkg) {
         await refreshAppList();
     } catch (err) {
         console.error('Uninstall error:', err);
-        showSnackAlert('錯誤：刪除應用程式失敗');
+        if (isConnected) {
+            showSnackAlert('錯誤：刪除應用程式失敗');
+        }
     }
 }
 
 function downloadAPK(pkg, dialog) {
+    // Check if device is connected before extracting APK
+    if (!isConnected) {
+        showSnackAlert('設備未連接，無法提取 APK');
+        return;
+    }
+    
     const extractBtn = dialog.querySelector("mdui-button[icon='download']");
 
     // 設置loading狀態
@@ -471,11 +546,15 @@ function downloadAPK(pkg, dialog) {
     window.getConfig()
         .then(cfg => extractAPK(pkg, cfg.extract_path))
         .then(ok => {
-            showSnackAlert(ok ? `應用程式 ${pkg} 已成功提取` : `提取應用程式 ${pkg} 失敗`);
+            if (isConnected) {
+                showSnackAlert(ok ? `應用程式 ${pkg} 已成功提取` : `提取應用程式 ${pkg} 失敗`);
+            }
         })
         .catch(err => {
             console.error('Extract APK error:', err);
-            showSnackAlert('錯誤：提取應用程式失敗');
+            if (isConnected) {
+                showSnackAlert('錯誤：提取應用程式失敗');
+            }
         })
         .finally(() => {
             // 恢復按鈕狀態

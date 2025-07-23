@@ -8,6 +8,22 @@ async function runADBcommand(command) {
         return response;
     } catch (error) {
         console.error('[adb] ADB error:', error);
+        
+        // Check if error message includes device offline/not found patterns
+        const errorString = error.toString().toLowerCase();
+        const messageString = error.message ? error.message.toLowerCase() : '';
+        
+        if (errorString.includes('device offline') || errorString.includes('device not found') ||
+            errorString.includes('not found') || 
+            messageString.includes('device offline') || messageString.includes('device not found') ||
+            messageString.includes('not found')) {
+            appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
+            
+            // Set UI state to disconnected
+            handleDeviceDisconnected();
+            return;
+        }
+
         appendToTerminal(error.toString(), 'error');
         throw error;
     }
