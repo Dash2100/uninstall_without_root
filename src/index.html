@@ -142,6 +142,20 @@
                     <mdui-switch class="my-auto ml-auto mr-6" id="settings-debugmode"></mdui-switch>
                 </mdui-card>
                 <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="palette"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">主題顏色</p>
+                        <p class="text-md text-gray-500">
+                            自訂應用程式的主題顏色
+                        </p>
+                    </div>
+                    <div class="flex items-center my-auto ml-auto mr-6 gap-3">
+                        <input type="color" id="settings-colorpicker" class="w-8 h-8 rounded border-0 cursor-pointer" value="#6750A4">
+                        <mdui-button-icon variant="filled" icon="refresh" id="settings-reset-color">
+                        </mdui-button-icon>
+                    </div>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="folder"></mdui-avatar>
                     <div class="flex flex-col justify-center">
                         <p class="text-lg">提取 APK 儲存路徑</p>

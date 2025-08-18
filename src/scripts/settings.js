@@ -3,6 +3,8 @@ const settingsEls = {
     darkMode: document.getElementById('settings-darkmode'),
     appData: document.getElementById('settings-appdata'),
     debugMode: document.getElementById('settings-debugmode'),
+    colorPicker: document.getElementById('settings-colorpicker'),
+    resetColor: document.getElementById('settings-reset-color'),
     chAPKPath: document.getElementById('settings-chapkpath'),
     openAPKPath: document.getElementById('settings-openpath'),
     extractPathText: document.getElementById('settings-extract-path'),
@@ -11,14 +13,19 @@ const settingsEls = {
 
 // Load configuration and update UI
 async function loadConfig() {
-    const { darkmode, delete_data, debug_mode, extract_path } =
+    const { darkmode, delete_data, debug_mode, extract_path, theme_color } =
         await window.getConfig();
-    console.log('[config] Loaded config:', { darkmode, delete_data, debug_mode, extract_path });
+    console.log('[config] Loaded config:', { darkmode, delete_data, debug_mode, extract_path, theme_color });
 
     settingsEls.darkMode.checked = darkmode;
     settingsEls.appData.checked = delete_data;
     settingsEls.debugMode.checked = debug_mode;
     settingsEls.extractPathText.innerText = truncateFilePath(extract_path, 35);
+
+    // Load saved color or use default
+    const savedColor = theme_color || '#6750A4';
+    settingsEls.colorPicker.value = savedColor;
+    applyColorScheme(savedColor);
 
     document.body.classList.toggle('mdui-theme-dark', darkmode);
     toggleTerminal(debug_mode);
@@ -45,6 +52,31 @@ settingsEls.debugMode.addEventListener('change', (e) => {
     const checked = e.target.checked;
     updateConfig('debug_mode', checked).then(() => toggleTerminal(checked));
 });
+
+// Apply color scheme using MDUI
+function applyColorScheme(color) {
+    try {
+        if (window.mdui?.setColorScheme) {
+            window.mdui.setColorScheme(color);
+        }
+    } catch (error) {
+        console.error('Error applying color scheme:', error);
+    }
+}
+
+// Color picker real-time update events
+settingsEls.colorPicker.addEventListener('input', (e) => {
+    const color = e.target.value;
+    applyColorScheme(color);
+});
+
+settingsEls.colorPicker.addEventListener('change', (e) => {
+    const color = e.target.value;
+    updateConfig('theme_color', color);
+});
+
+// Reset color to default (will be bound in DOMContentLoaded)
+// Moved to DOMContentLoaded to ensure proper binding
 
 // Change extract path
 settingsEls.chAPKPath.addEventListener('click', async () => {
@@ -108,4 +140,16 @@ function truncateFilePath(filePath, maxLength) {
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => loadConfig());
+document.addEventListener('DOMContentLoaded', () => {
+    loadConfig();
+    // Ensure reset button is properly bound after DOM is loaded
+    const resetColorBtn = document.getElementById('settings-reset-color');
+    if (resetColorBtn) {
+        resetColorBtn.addEventListener('click', () => {
+            const defaultColor = '#6750A4';
+            settingsEls.colorPicker.value = defaultColor;
+            updateConfig('theme_color', defaultColor);
+            applyColorScheme(defaultColor);
+        });
+    }
+});

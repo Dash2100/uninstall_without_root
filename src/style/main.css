@@ -113,8 +113,23 @@ mdui-menu-item::part(label){
     }
 }
 
+/* Fix surface layers for proper visual hierarchy */
+body {
+    background-color: rgb(var(--mdui-color-background)) !important;
+}
+
 mdui-card {
     box-shadow: none;
+    background-color: rgb(var(--mdui-color-surface-container)) !important;
+}
+
+mdui-navigation-bar {
+    background-color: rgb(var(--mdui-color-surface-container)) !important;
+}
+
+/* Ensure top app bar has same background as body */
+mdui-top-app-bar {
+    background-color: rgb(var(--mdui-color-background)) !important;
 }
 
 .app_list {

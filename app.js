@@ -65,7 +65,8 @@ const defaultConfig = {
     darkmode: true,
     delete_data: false,
     debug_mode: false,
-    extract_path: getDefaultExtractPath()
+    extract_path: getDefaultExtractPath(),
+    theme_color: '#6750A4'
 };
 
 // Write default config
