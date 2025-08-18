@@ -5,7 +5,7 @@ import qrcode
 from zeroconf import IPVersion, ServiceBrowser, ServiceStateChange, Zeroconf
 
 # 配置
-ADB_PATH = "/Users/dash/Documents/GitHub/Maii/uninstall_without_root/adb/mac-arm64/adb"
+ADB_PATH = "C:\\Users\\tony2\\Documents\\GitHub\\electron_project\\uninstall_without_root\\adb\\win-x64\\adb.exe"
 NAME = "ADB_WIFI"
 PASSWORD = "000000"
 device_ports = []

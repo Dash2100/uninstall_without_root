@@ -52,12 +52,12 @@
 
             <mdui-circular-progress id="icon-loading" class="mt-2 pl-2 w-10 h-6 hidden"></mdui-circular-progress>
 
-            <mdui-button-icon variant="tonal" icon="link" id="icon-connected" class="mx-1 hidden" onclick="handleConnectionClick();"
-                title="已連接裝置">
+            <mdui-button-icon variant="tonal" icon="link" id="icon-connected" class="mx-1 hidden"
+                onclick="handleConnectionClick();" title="已連接裝置">
             </mdui-button-icon>
 
-            <mdui-button-icon variant="tonal" icon="link_off" id="icon-disconnected" class="mx-1" onclick="handleConnectionClick();"
-                title="尚未連接裝置">
+            <mdui-button-icon variant="tonal" icon="link_off" id="icon-disconnected" class="mx-1"
+                onclick="handleConnectionClick();" title="尚未連接裝置">
             </mdui-button-icon>
         </mdui-top-app-bar>
 
@@ -82,7 +82,7 @@
                 </div>
 
                 <!-- 連接裝置提示 -->
-                <div class="flex flex-col justify-center items-center h-full w-full pt-5 pb-12"
+                <div class="flex flex-col justify-center items-center h-full w-full"
                     id="app-list-disconnected">
                     <mdui-icon name="link_off" class="text-6xl mx-auto my-5"></mdui-icon>
                     <p class="text-center text-2xl">請連接裝置</p>
@@ -150,7 +150,8 @@
                         </p>
                     </div>
                     <div class="flex items-center my-auto ml-auto mr-6 gap-3">
-                        <input type="color" id="settings-colorpicker" class="w-8 h-8 rounded border-0 cursor-pointer" value="#6750A4">
+                        <input type="color" id="settings-colorpicker" class="w-8 h-8 rounded border-0 cursor-pointer"
+                            value="#6750A4">
                         <mdui-button-icon variant="filled" icon="refresh" id="settings-reset-color">
                         </mdui-button-icon>
                     </div>
@@ -169,6 +170,26 @@
 
                         <!-- 選擇路徑 -->
                         <mdui-button-icon variant="filled" icon="edit" class="my-auto ml-auto" id="settings-chapkpath">
+                        </mdui-button-icon>
+                    </div>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">ADB 執行檔路徑</p>
+                        <p class="text-md text-gray-500 whitespace-nowrap truncate" id="settings-adb-info">使用內建版本</p>
+                    </div>
+
+                    <!-- ADB 路徑控制 -->
+                    <div class="flex items-center my-auto ml-auto mr-6 gap-3">
+                        <!-- 恢復預設 -->
+                        <mdui-button-icon variant="filled" icon="refresh" class="my-auto" id="settings-adb-reset"
+                            title="恢復使用內建版本">
+                        </mdui-button-icon>
+
+                        <!-- 選擇 ADB -->
+                        <mdui-button-icon variant="filled" icon="edit" class="my-auto" id="settings-adb-select"
+                            title="選擇自訂 ADB 檔案">
                         </mdui-button-icon>
                     </div>
                 </mdui-card>

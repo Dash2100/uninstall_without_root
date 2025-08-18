@@ -15,8 +15,8 @@ const userData = app.getPath('userData');
 const tempPath = path.join(userData, 'temp');
 const configPath = path.join(userData, 'config.json');
 
-// Get ADB executable path
-function getAdbPath() {
+// Get built-in ADB executable path
+function getBuiltinAdbPath() {
     const platform = os.platform();
     const arch = os.arch();
     let adbPath;
@@ -30,13 +30,24 @@ function getAdbPath() {
     } else {
         throw new Error(`Unsupported platform: ${platform} ${arch}`);
     }
-    console.log('[ADB] getAdbPath:', adbPath);
     return adbPath;
 }
 
+// Get ADB executable path (custom or built-in)
+async function getAdbPath() {
+    const config = await readConfig();
+    if (config.custom_adb_path && await fs.promises.access(config.custom_adb_path).then(() => true).catch(() => false)) {
+        console.log('[ADB] Using custom ADB path:', config.custom_adb_path);
+        return config.custom_adb_path;
+    }
+    const builtinPath = getBuiltinAdbPath();
+    console.log('[ADB] Using built-in ADB path:', builtinPath);
+    return builtinPath;
+}
+
 // Ensure ADB is executable
-function initADB() {
-    const adb = getAdbPath();
+async function initADB() {
+    const adb = await getAdbPath();
     console.log('[ADB] initADB: ensuring executable:', adb);
     if (os.platform() !== 'win32') {
         fs.chmod(adb, 0o755, () => {
@@ -66,7 +77,8 @@ const defaultConfig = {
     delete_data: false,
     debug_mode: false,
     extract_path: getDefaultExtractPath(),
-    theme_color: '#6750A4'
+    theme_color: '#6750A4',
+    custom_adb_path: null // null 表示使用內建版本
 };
 
 // Write default config
@@ -151,10 +163,10 @@ function createWindow() {
 }
 
 // Execute external ADB command
-ipcMain.handle('execute-adb-command', (_e, cmd) => {
+ipcMain.handle('execute-adb-command', async (_e, cmd) => {
     console.log('[ADB] execute command:', cmd);
-    return new Promise((res, rej) => {
-        const adb = initADB();
+    return new Promise(async (res, rej) => {
+        const adb = await getAdbPath();
         exec(`"${adb}" ${cmd}`, (err, out, errOut) => {
             if (err) {
                 console.log('[ADB] command error:', err);
@@ -265,17 +277,75 @@ ipcMain.handle('break-window', () => {
     }
 });
 
+// Test ADB and get version info
+ipcMain.handle('test-adb-path', async (_e, adbPath) => {
+    console.log('[ADB] Testing ADB path:', adbPath);
+    return new Promise((resolve) => {
+        exec(`"${adbPath}" version`, { timeout: 5000 }, (err, out, errOut) => {
+            if (err) {
+                console.log('[ADB] Test failed:', err.message);
+                resolve({ success: false, error: err.message });
+            } else {
+                // Extract version info from output
+                const versionMatch = out.match(/Android Debug Bridge version (\d+\.\d+\.\d+)/);
+                const version = versionMatch ? versionMatch[1] : '未知版本';
+                console.log('[ADB] Test successful, version:', version);
+                resolve({ success: true, version: version, fullOutput: out.trim() });
+            }
+        });
+    });
+});
+
+// Get current ADB info
+ipcMain.handle('get-adb-info', async () => {
+    const config = await readConfig();
+    const adbPath = await getAdbPath();
+    const isCustom = config.custom_adb_path && config.custom_adb_path === adbPath;
+    
+    // Get version info
+    const testResult = await new Promise((resolve) => {
+        exec(`"${adbPath}" version`, { timeout: 5000 }, (err, out, errOut) => {
+            if (err) {
+                resolve({ success: false, error: err.message });
+            } else {
+                const versionMatch = out.match(/Android Debug Bridge version (\d+\.\d+\.\d+)/);
+                const version = versionMatch ? versionMatch[1] : '未知版本';
+                resolve({ success: true, version: version });
+            }
+        });
+    });
+    
+    return {
+        isCustom,
+        path: adbPath,
+        version: testResult.success ? testResult.version : '版本檢測失敗'
+    };
+});
+
+// Restart ADB tracking when path changes
+ipcMain.handle('restart-adb-tracking', async () => {
+    console.log('[ADB] Restarting ADB tracking due to path change');
+    stopAdbTracking();
+    
+    // Wait a moment before restarting
+    setTimeout(() => {
+        startAdbTracking();
+    }, 1000);
+    
+    return { success: true };
+});
+
 // USB Device Change Monitoring
 let adbTrackProcess = null;
 let mainWindow = null;
 
-function startAdbTracking() {
+async function startAdbTracking() {
     if (adbTrackProcess) {
         console.log('[ADB] Track process already running');
         return;
     }
 
-    const adbPath = getAdbPath();
+    const adbPath = await getAdbPath();
     console.log('[ADB] Starting device tracking with:', adbPath);
     
     adbTrackProcess = spawn(adbPath, ['track-devices'], { 
@@ -324,10 +394,11 @@ function stopAdbTracking() {
 }
 
 // Kill ADB on exit
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
     console.log('[ADB] kill-server and stop tracking');
     stopAdbTracking();
-    exec(`"${getAdbPath()}" kill-server`, () => { });
+    const adbPath = await getAdbPath();
+    exec(`"${adbPath}" kill-server`, () => { });
 });
 
 // App lifecycle

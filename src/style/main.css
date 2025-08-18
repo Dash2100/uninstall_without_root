@@ -29,11 +29,11 @@ mdui-text-field::part(icon) {
     transform: scale(1.1);
 }
 
-mdui-menu-item{
+mdui-menu-item {
     padding: 10px 0;
 }
 
-mdui-menu-item::part(label){
+mdui-menu-item::part(label) {
     white-space: normal;
 }
 
@@ -95,25 +95,25 @@ mdui-menu-item::part(label){
     #app-list-content {
         scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
     }
-    
+
     #app-list-content::-webkit-scrollbar-track {
         background: rgba(255, 255, 255, 0.05);
     }
-    
+
     #app-list-content::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.2);
     }
-    
+
     #app-list-content::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.4);
     }
-    
+
     #app-list-content::-webkit-scrollbar-thumb:active {
         background: rgba(255, 255, 255, 0.6);
     }
 }
 
-/* Fix surface layers for proper visual hierarchy */
+
 body {
     background-color: rgb(var(--mdui-color-background)) !important;
 }
@@ -127,13 +127,13 @@ mdui-navigation-bar {
     background-color: rgb(var(--mdui-color-surface-container)) !important;
 }
 
-/* Ensure top app bar has same background as body */
 mdui-top-app-bar {
     background-color: rgb(var(--mdui-color-background)) !important;
 }
 
 .app_list {
     max-height: calc(100vh - 270px);
+    min-height: calc(100vh - 270px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     display: flex;
@@ -167,6 +167,15 @@ mdui-top-app-bar {
 .app_list>mdui-card {
     flex-shrink: 0;
     min-height: 80px;
+    position: relative;
+}
+
+#app-list-disconnected {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
 }
 
 mdui-segmented-button {
@@ -191,12 +200,9 @@ mdui-chip {
     overflow-y: auto;
 }
 
-/* 為所有頁面添加相同的滾動條樣式 */
 .page::-webkit-scrollbar {
     width: 6px;
-    /* 增加滾動條寬度 */
     transition: width 0.3s ease;
-    /* 添加過渡效果 */
 }
 
 .page::-webkit-scrollbar-track {

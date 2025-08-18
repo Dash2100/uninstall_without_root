@@ -9,6 +9,9 @@ const settingsEls = {
     openAPKPath: document.getElementById('settings-openpath'),
     extractPathText: document.getElementById('settings-extract-path'),
     resetButton: document.getElementById('settings-reset'),
+    adbInfo: document.getElementById('settings-adb-info'),
+    adbSelect: document.getElementById('settings-adb-select'),
+    adbReset: document.getElementById('settings-adb-reset'),
 };
 
 // Load configuration and update UI
@@ -29,6 +32,9 @@ async function loadConfig() {
 
     document.body.classList.toggle('mdui-theme-dark', darkmode);
     toggleTerminal(debug_mode);
+    
+    // Load ADB info
+    loadAdbInfo();
 }
 
 // Update a config key
@@ -139,6 +145,87 @@ function truncateFilePath(filePath, maxLength) {
     return filePath.slice(0, half) + ellipsis + filePath.slice(-half);
 }
 
+// Load ADB information
+async function loadAdbInfo() {
+    try {
+        const adbInfo = await window.getAdbInfo();
+        if (adbInfo.isCustom) {
+            settingsEls.adbInfo.textContent = `自訂版本 ${adbInfo.version} - ${truncateFilePath(adbInfo.path, 30)}`;
+        } else {
+            settingsEls.adbInfo.textContent = `內建版本 ${adbInfo.version}`;
+        }
+    } catch (error) {
+        console.error('Error loading ADB info:', error);
+        settingsEls.adbInfo.textContent = '無法取得 ADB 資訊';
+    }
+}
+
+// Select custom ADB file
+async function selectAdbFile() {
+    try {
+        const { canceled, filePaths } = await window.showOpenDialog({
+            properties: ['openFile'],
+            title: '選擇 ADB 執行檔',
+            filters: [
+                { name: 'ADB 執行檔', extensions: process.platform === 'win32' ? ['exe'] : ['*'] }
+            ]
+        });
+        
+        if (!canceled && filePaths.length) {
+            const selectedPath = filePaths[0];
+            
+            // 顯示測試中的提示
+            settingsEls.adbInfo.textContent = '正在測試 ADB...';
+            
+            // Test the selected ADB
+            const testResult = await window.testAdbPath(selectedPath);
+            
+            if (testResult.success) {
+                // Save custom ADB path
+                await updateConfig('custom_adb_path', selectedPath);
+                settingsEls.adbInfo.textContent = `自訂版本 ${testResult.version} - ${truncateFilePath(selectedPath, 30)}`;
+                showSnackAlert(`ADB 設定成功！版本：${testResult.version}`);
+                
+                // 重新啟動 ADB tracking
+                try {
+                    await window.restartAdbTracking();
+                } catch (error) {
+                    console.error('Error restarting ADB tracking:', error);
+                }
+            } else {
+                settingsEls.adbInfo.textContent = '測試失敗，請重新選擇';
+                showSnackAlert(`ADB 測試失敗：${testResult.error}`);
+                
+                // 恢復原來的顯示
+                setTimeout(() => loadAdbInfo(), 2000);
+            }
+        }
+    } catch (error) {
+        console.error('Error selecting ADB file:', error);
+        showSnackAlert('選擇檔案時發生錯誤');
+        loadAdbInfo();
+    }
+}
+
+// Reset to built-in ADB
+async function resetToBuiltinAdb() {
+    try {
+        await updateConfig('custom_adb_path', null);
+        await loadAdbInfo();
+        showSnackAlert('已恢復使用內建 ADB');
+        
+        // 重新啟動 ADB tracking
+        try {
+            await window.restartAdbTracking();
+        } catch (error) {
+            console.error('Error restarting ADB tracking:', error);
+        }
+    } catch (error) {
+        console.error('Error resetting ADB:', error);
+        showSnackAlert('重置 ADB 設定時發生錯誤');
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadConfig();
@@ -150,6 +237,23 @@ document.addEventListener('DOMContentLoaded', () => {
             settingsEls.colorPicker.value = defaultColor;
             updateConfig('theme_color', defaultColor);
             applyColorScheme(defaultColor);
+        });
+    }
+    
+    // ADB event listeners
+    if (settingsEls.adbSelect) {
+        settingsEls.adbSelect.addEventListener('click', selectAdbFile);
+    }
+    
+    if (settingsEls.adbReset) {
+        settingsEls.adbReset.addEventListener('click', () => {
+            showQuestionDialog({
+                title: '恢復內建 ADB',
+                description: '確定要恢復使用內建的 ADB 版本嗎？',
+                acceptText: '確定',
+                denyText: '取消',
+                onAccept: resetToBuiltinAdb,
+            });
         });
     }
 });
