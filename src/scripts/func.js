@@ -694,7 +694,7 @@ function confirmDisconnect() {
 
     clearAppList();
 
-    showSnackAlert('已斷開現有連接');
+    // showSnackAlert('已斷開現有連接');
 }
 
 function confirmDisconnectAndWireless() {

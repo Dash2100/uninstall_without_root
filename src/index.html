@@ -75,15 +75,14 @@
         <div class="p-8 px-5 pt-3 flex flex-col app-list">
             <mdui-card class="flex flex-col overflow-auto app_list h-full w-full" id="app-list">
                 <!-- 應用程式載入中提示 -->
-                <div class="flex flex-col justify-center items-center h-full w-full pt-5 pb-12" id="app-list-loading"
+                <div class="flex flex-col justify-center items-center h-full w-full" id="app-list-loading"
                     style="display: none;">
                     <mdui-circular-progress class="mx-auto my-5"></mdui-circular-progress>
                     <p class="text-center">正在載入應用程式列表...</p>
                 </div>
 
                 <!-- 連接裝置提示 -->
-                <div class="flex flex-col justify-center items-center h-full w-full"
-                    id="app-list-disconnected">
+                <div class="flex flex-col justify-center items-center h-full w-full" id="app-list-disconnected">
                     <mdui-icon name="link_off" class="text-6xl mx-auto my-5"></mdui-icon>
                     <p class="text-center text-2xl">請連接裝置</p>
                 </div>
@@ -120,26 +119,6 @@
                         </p>
                     </div>
                     <mdui-switch class="my-auto ml-auto mr-6" id="settings-darkmode"></mdui-switch>
-                </mdui-card>
-                <mdui-card class="w-full h-20 flex">
-                    <mdui-avatar class="my-auto mx-4" icon="delete"></mdui-avatar>
-                    <div class="flex flex-col justify-center">
-                        <p class="text-lg">同時刪除資料</p>
-                        <p class="text-md text-gray-500">
-                            預設勾選「同時刪除APP資料」
-                        </p>
-                    </div>
-                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-appdata"></mdui-switch>
-                </mdui-card>
-                <mdui-card class="w-full h-20 flex">
-                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
-                    <div class="flex flex-col justify-center">
-                        <p class="text-lg">除錯模式</p>
-                        <p class="text-md text-gray-500">
-                            開啟後會顯示 ADB Console
-                        </p>
-                    </div>
-                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-debugmode"></mdui-switch>
                 </mdui-card>
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="palette"></mdui-avatar>
@@ -180,7 +159,6 @@
                         <p class="text-md text-gray-500 whitespace-nowrap truncate" id="settings-adb-info">使用內建版本</p>
                     </div>
 
-                    <!-- ADB 路徑控制 -->
                     <div class="flex items-center my-auto ml-auto mr-6 gap-3">
                         <!-- 恢復預設 -->
                         <mdui-button-icon variant="filled" icon="refresh" class="my-auto" id="settings-adb-reset"
@@ -192,6 +170,26 @@
                             title="選擇自訂 ADB 檔案">
                         </mdui-button-icon>
                     </div>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="delete"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">同時刪除資料</p>
+                        <p class="text-md text-gray-500">
+                            預設勾選「同時刪除APP資料」
+                        </p>
+                    </div>
+                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-appdata"></mdui-switch>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">除錯模式</p>
+                        <p class="text-md text-gray-500">
+                            開啟後會顯示 ADB Console
+                        </p>
+                    </div>
+                    <mdui-switch class="my-auto ml-auto mr-6" id="settings-debugmode"></mdui-switch>
                 </mdui-card>
             </div>
         </div>
