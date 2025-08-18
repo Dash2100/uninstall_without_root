@@ -66,13 +66,21 @@ function showLoading() {
 }
 
 // Handle device disconnection
+let disconnectionNotified = false;
+let noDeviceNotified = false;
 function handleDeviceDisconnected() {
+    // Avoid duplicate notifications
+    if (disconnectionNotified || !isConnected) {
+        return;
+    }
+
+    disconnectionNotified = true;
     isConnected = false;
     isConnecting = false;
     selectedDevice = null;
     toggleConnectionIcon(false, false);
     clearAppList();
-    
+
     // Close any open app info dialogs
     const appInfoDialogs = document.querySelectorAll('.dialog-appinfo');
     appInfoDialogs.forEach(dialog => {
@@ -84,8 +92,13 @@ function handleDeviceDisconnected() {
             }
         }, 100);
     });
-    
-    showSnackAlert('設備已斷開連接，請重新連接');
+
+    showSnackAlert('與裝置的連線中斷');
+
+    // Reset notification flag after a delay
+    setTimeout(() => {
+        disconnectionNotified = false;
+    }, 3000);
 }
 
 // Core Logic
@@ -100,14 +113,20 @@ async function getDevice() {
         const output = await runADBcommand('devices');
         if (!output.includes('List of devices attached')) {
             clearAppList();
-            showSnackAlert('無法連接到設備');
+            if (!noDeviceNotified) {
+                showSnackAlert('無法連接到設備');
+                noDeviceNotified = true;
+            }
             toggleConnectionIcon(false, false);
             return;
         }
 
         const lines = output.trim().split('\n').slice(1).filter(Boolean);
         if (!lines.length) {
-            showSnackAlert('目前沒有連接到設備');
+            if (!noDeviceNotified) {
+                showSnackAlert('目前沒有連接到設備');
+                noDeviceNotified = true;
+            }
             toggleConnectionIcon(false, false);
             clearAppList();
             return;
@@ -133,6 +152,8 @@ async function getDevice() {
         if (devices.length === 1) {
             selectedDevice = devices[0].id;
             isConnected = true;
+            disconnectionNotified = false; // Reset disconnection notification flag
+            noDeviceNotified = false; // Reset no device notification flag
             toggleConnectionIcon(true, false);
             showSnackAlert(`已連接到設備: ${selectedDevice}`);
             await refreshAppList();
@@ -197,6 +218,8 @@ function confirmDeviceSelection() {
 
     selectedDevice = selectedValue;
     isConnected = true;
+    disconnectionNotified = false; // Reset disconnection notification flag
+    noDeviceNotified = false; // Reset no device notification flag
     toggleConnectionIcon(true, false);
     showSnackAlert(`已連接到設備: ${selectedDevice}`);
     dialog.open = false;
@@ -260,10 +283,10 @@ async function fetchApps() {
 
 function filterApps({ apps }, term) {
     if (!term) return { apps };
-    
+
     const filtered = { apps: { user: {}, system: {} } };
     const lowerTerm = term.toLowerCase();
-    
+
     for (const type of Object.keys(apps)) {
         for (const app of Object.values(apps[type])) {
             if (app.package_name.toLowerCase().includes(lowerTerm)) {
@@ -289,7 +312,7 @@ function initVirtualScroll() {
     const container = els.appListContainer;
     virtualScrollData.containerHeight = container.clientHeight || 600;
     virtualScrollData.visibleCount = Math.ceil(virtualScrollData.containerHeight / virtualScrollData.itemHeight);
-    
+
     container.addEventListener('scroll', handleVirtualScroll);
     window.addEventListener('resize', () => {
         virtualScrollData.containerHeight = container.clientHeight || 600;
@@ -303,7 +326,7 @@ function handleVirtualScroll() {
     if (scrollTimeout) {
         clearTimeout(scrollTimeout);
     }
-    
+
     scrollTimeout = setTimeout(() => {
         virtualScrollData.scrollTop = els.appListContainer.scrollTop;
         renderVirtualAppList();
@@ -312,52 +335,52 @@ function handleVirtualScroll() {
 
 function renderAppList({ apps }) {
     clearPlaceholders();
-    
+
     virtualScrollData.allApps = [
         ...Object.values(apps.user).map(app => ({ ...app, type: '使用者程式' })),
         ...Object.values(apps.system).map(app => ({ ...app, type: '系統程式' }))
     ];
-    
+
     if (!virtualScrollData.containerHeight) {
         initVirtualScroll();
     }
-    
+
     renderVirtualAppList();
 }
 
 function renderVirtualAppList() {
     const { allApps, itemHeight, visibleCount, bufferSize, scrollTop } = virtualScrollData;
-    
+
     if (allApps.length === 0) {
         els.appListContainer.innerHTML = '';
         return;
     }
-    
+
     const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - bufferSize);
     const endIndex = Math.min(allApps.length, startIndex + visibleCount + bufferSize * 2);
-    
+
     virtualScrollData.startIndex = startIndex;
     virtualScrollData.endIndex = endIndex;
-    
+
     const totalHeight = allApps.length * itemHeight;
     const offsetY = startIndex * itemHeight;
-    
+
     els.appListContainer.innerHTML = '';
     els.appListContainer.style.height = `${virtualScrollData.containerHeight}px`;
     els.appListContainer.style.position = 'relative';
     els.appListContainer.style.overflow = 'auto';
-    
+
     const scrollContainer = document.createElement('div');
     scrollContainer.style.height = `${totalHeight}px`;
     scrollContainer.style.position = 'relative';
-    
+
     const visibleContainer = document.createElement('div');
     visibleContainer.style.transform = `translateY(${offsetY}px)`;
     visibleContainer.style.position = 'absolute';
     visibleContainer.style.top = '0';
     visibleContainer.style.left = '0';
     visibleContainer.style.right = '0';
-    
+
     const frag = document.createDocumentFragment();
     for (let i = startIndex; i < endIndex; i++) {
         const app = allApps[i];
@@ -366,7 +389,7 @@ function renderVirtualAppList() {
         card.style.boxSizing = 'border-box';
         frag.appendChild(card);
     }
-    
+
     visibleContainer.appendChild(frag);
     scrollContainer.appendChild(visibleContainer);
     els.appListContainer.appendChild(scrollContainer);
@@ -401,7 +424,7 @@ async function viewAppInfo(pkg) {
         showSnackAlert('設備未連接，無法查看應用程式信息');
         return;
     }
-    
+
     try {
         const command = selectedDevice
             ? `-s ${selectedDevice} shell dumpsys package ${pkg}`
@@ -433,7 +456,7 @@ function showInfoDialog(pkg, vName, vCode, updated, enabled) {
         console.log('Device disconnected, not showing app info dialog');
         return;
     }
-    
+
     const html = els.appInfoTemplate.innerHTML
         .replace(/{{app.packageName}}/g, pkg)
         .replace(/{{app.version}}/g, `${vName} (${vCode})`)
@@ -477,7 +500,7 @@ async function toggleAppState(pkg, enable, dialog) {
         dialog.open = false;
         return;
     }
-    
+
     const action = enable ? enableAPP : disableAPP;
     try {
         await action(pkg);
@@ -514,7 +537,7 @@ async function uninstallApp(pkg) {
         showSnackAlert('設備未連接，無法執行卸載操作');
         return;
     }
-    
+
     const delData = document.getElementById('delete-app-data').checked;
     showSnackAlert(`正在刪除應用程式: ${pkg}...`);
     try {
@@ -535,7 +558,7 @@ function downloadAPK(pkg, dialog) {
         showSnackAlert('設備未連接，無法提取 APK');
         return;
     }
-    
+
     const extractBtn = dialog.querySelector("mdui-button[icon='download']");
 
     // 設置loading狀態
@@ -562,6 +585,44 @@ function downloadAPK(pkg, dialog) {
             extractBtn.disabled = false;
             dialog.setAttribute('close-on-overlay-click', 'true');
         });
+}
+
+// Handle device change events (called from integration.js)
+let appInitialized = false;
+window.handleDeviceChange = function (deviceList) {
+    console.log('[USB] Device change detected:', deviceList);
+
+    // Ignore initial device status during app startup
+    if (!appInitialized) {
+        console.log('[USB] Ignoring device change during app initialization');
+        return;
+    }
+
+    // Parse device list to check for available devices
+    const hasValidDevice = deviceList.includes('device') || deviceList.includes('recovery');
+    const wasConnected = isConnected;
+
+    setTimeout(async () => {
+        if (hasValidDevice) {
+            console.log('[USB] Valid device detected, refreshing connection and app list');
+            // Re-check device connection
+            await getDevice();
+            if (isConnected) {
+                await refreshAppList();
+            }
+        } else {
+            console.log('[USB] No valid device found, updating UI to show disconnected state');
+            if (wasConnected) {
+                // Device was disconnected
+                handleDeviceDisconnected();
+            }
+        }
+    }, 800); // Increase delay to allow device to settle
+};
+
+// Setup USB Device Change Monitoring
+function setupUSBDeviceMonitoring() {
+    console.log('[USB] Device change monitoring handler registered');
 }
 
 // Event Listeners
@@ -612,7 +673,7 @@ function handleConnectionClick() {
 function showDisconnectDialog(openWirelessAfter = false) {
     const description = document.getElementById('disconnect-description');
     const confirmBtn = document.getElementById('confirm-disconnect-btn');
-    
+
     if (openWirelessAfter) {
         description.textContent = '目前已連接到設備，是否要斷開現有連接並開始無線連接？';
         confirmBtn.onclick = () => confirmDisconnectAndWireless();
@@ -620,33 +681,33 @@ function showDisconnectDialog(openWirelessAfter = false) {
         description.textContent = '目前已連接到設備，是否要斷開現有連接？';
         confirmBtn.onclick = () => confirmDisconnect();
     }
-    
+
     els.dialogDisconnectConfirm.open = true;
 }
 
 function confirmDisconnect() {
     els.dialogDisconnectConfirm.open = false;
-    
+
     isConnected = false;
     selectedDevice = null;
     toggleConnectionIcon(false, false);
-    
+
     clearAppList();
-    
+
     showSnackAlert('已斷開現有連接');
 }
 
 function confirmDisconnectAndWireless() {
     els.dialogDisconnectConfirm.open = false;
-    
+
     isConnected = false;
     selectedDevice = null;
     toggleConnectionIcon(false, false);
-    
+
     clearAppList();
-    
-    showSnackAlert('已斷開現有連接');
-    
+
+    // showSnackAlert('已斷開現有連接');
+
     els.dialogWirelessConnect.open = true;
 }
 
@@ -662,7 +723,16 @@ function initApp() {
     // els.dialogWarning.open = true;
 
     // remove automatic device selection dialog
-    getDevice();
+    getDevice().then(() => {
+        // Mark app as initialized after initial device check
+        setTimeout(() => {
+            appInitialized = true;
+            console.log('[App] Initialization complete, USB monitoring active');
+        }, 2000);
+    });
+
+    // Setup USB Device Change Monitoring
+    setupUSBDeviceMonitoring();
 
     // els.dialogWirelessConnect.open = true;
 }

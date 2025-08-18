@@ -1,6 +1,6 @@
 // Electron main process entry
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -123,7 +123,7 @@ async function initTemp() {
 // Create application window
 function createWindow() {
     console.log('[App] createWindow: opening main window');
-    const win = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 850, height: 900, resizable: false,
         autoHideMenuBar: true,
         backgroundColor: '#0f0f0f',
@@ -133,8 +133,20 @@ function createWindow() {
             contextIsolation: false
         }
     });
-    win.loadFile(path.join(__dirname, 'src', 'index.html'));
-    global.mainWindow = win;
+    mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+    global.mainWindow = mainWindow;
+
+    // Start ADB device tracking when window is ready
+    mainWindow.webContents.once('did-finish-load', () => {
+        console.log('[ADB] Window loaded, starting device tracking');
+        setTimeout(() => startAdbTracking(), 1000);
+    });
+
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+        stopAdbTracking();
+    });
+
     console.log('[App] main window created');
 }
 
@@ -253,9 +265,68 @@ ipcMain.handle('break-window', () => {
     }
 });
 
+// USB Device Change Monitoring
+let adbTrackProcess = null;
+let mainWindow = null;
+
+function startAdbTracking() {
+    if (adbTrackProcess) {
+        console.log('[ADB] Track process already running');
+        return;
+    }
+
+    const adbPath = getAdbPath();
+    console.log('[ADB] Starting device tracking with:', adbPath);
+    
+    adbTrackProcess = spawn(adbPath, ['track-devices'], { 
+        stdio: ['ignore', 'pipe', 'pipe'] 
+    });
+
+    adbTrackProcess.stdout.on('data', (data) => {
+        const output = data.toString().trim();
+        console.log('[ADB] Device tracking output:', output);
+        
+        // Notify renderer process about device changes
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('adb-device-changed', output);
+        }
+    });
+
+    adbTrackProcess.stderr.on('data', (data) => {
+        console.log('[ADB] Device tracking error:', data.toString());
+    });
+
+    adbTrackProcess.on('close', (code) => {
+        console.log('[ADB] Track process closed with code:', code);
+        adbTrackProcess = null;
+        
+        // Restart tracking if it wasn't intentionally stopped
+        if (code !== 0 && !app.isQuitting) {
+            setTimeout(() => {
+                console.log('[ADB] Restarting device tracking...');
+                startAdbTracking();
+            }, 2000);
+        }
+    });
+
+    adbTrackProcess.on('error', (error) => {
+        console.error('[ADB] Track process error:', error);
+        adbTrackProcess = null;
+    });
+}
+
+function stopAdbTracking() {
+    if (adbTrackProcess) {
+        console.log('[ADB] Stopping device tracking');
+        adbTrackProcess.kill();
+        adbTrackProcess = null;
+    }
+}
+
 // Kill ADB on exit
 app.on('before-quit', () => {
-    console.log('[ADB] kill-server');
+    console.log('[ADB] kill-server and stop tracking');
+    stopAdbTracking();
     exec(`"${getAdbPath()}" kill-server`, () => { });
 });
 
