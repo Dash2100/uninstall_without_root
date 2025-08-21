@@ -23,7 +23,10 @@ async function loadConfig() {
     settingsEls.darkMode.checked = darkmode;
     settingsEls.appData.checked = delete_data;
     settingsEls.debugMode.checked = debug_mode;
-    settingsEls.extractPathText.innerText = truncateFilePath(extract_path, 35);
+
+    // Update extract path display based on debug mode
+    const pathLength = debug_mode ? 12 : 35;
+    settingsEls.extractPathText.innerText = truncateFilePath(extract_path, pathLength);
 
     // Load saved color or use default
     const savedColor = theme_color || '#6750A4';
@@ -32,9 +35,20 @@ async function loadConfig() {
 
     document.body.classList.toggle('mdui-theme-dark', darkmode);
     toggleTerminal(debug_mode);
-    
+
     // Load ADB info
     loadAdbInfo();
+}
+
+// Update extract path display based on debug mode
+async function updateExtractPathDisplay() {
+    try {
+        const config = await window.getConfig();
+        const pathLength = config.debug_mode ? 12 : 35;
+        settingsEls.extractPathText.innerText = truncateFilePath(config.extract_path, pathLength);
+    } catch (error) {
+        console.error('Error updating extract path display:', error);
+    }
 }
 
 // Update a config key
@@ -56,7 +70,11 @@ settingsEls.appData.addEventListener('change', (e) => {
 
 settingsEls.debugMode.addEventListener('change', (e) => {
     const checked = e.target.checked;
-    updateConfig('debug_mode', checked).then(() => toggleTerminal(checked));
+    updateConfig('debug_mode', checked).then(() => {
+        toggleTerminal(checked);
+        loadAdbInfo();
+        updateExtractPathDisplay();
+    });
 });
 
 // Apply color scheme using MDUI
@@ -94,7 +112,10 @@ settingsEls.chAPKPath.addEventListener('click', async () => {
         if (!canceled && filePaths.length) {
             const selected = filePaths[0];
             await updateConfig('extract_path', selected);
-            settingsEls.extractPathText.innerText = truncateFilePath(selected, 35);
+
+            const config = await window.getConfig();
+            const pathLength = config.debug_mode ? 12 : 35;
+            settingsEls.extractPathText.innerText = truncateFilePath(selected, pathLength);
         }
     } catch (err) {
         console.error('Error selecting folder:', err);
@@ -150,7 +171,9 @@ async function loadAdbInfo() {
     try {
         const adbInfo = await window.getAdbInfo();
         if (adbInfo.isCustom) {
-            settingsEls.adbInfo.textContent = `自訂版本 ${adbInfo.version} - ${truncateFilePath(adbInfo.path, 30)}`;
+            const config = await window.getConfig();
+            const pathLength = config.debug_mode ? 12 : 35;
+            settingsEls.adbInfo.textContent = `自訂版本 ${adbInfo.version} - ${truncateFilePath(adbInfo.path, pathLength)}`;
         } else {
             settingsEls.adbInfo.textContent = `內建版本 ${adbInfo.version}`;
         }
@@ -170,23 +193,22 @@ async function selectAdbFile() {
                 { name: 'ADB 執行檔', extensions: process.platform === 'win32' ? ['exe'] : ['*'] }
             ]
         });
-        
+
         if (!canceled && filePaths.length) {
             const selectedPath = filePaths[0];
-            
-            // 顯示測試中的提示
             settingsEls.adbInfo.textContent = '正在測試 ADB...';
-            
+
             // Test the selected ADB
             const testResult = await window.testAdbPath(selectedPath);
-            
+
             if (testResult.success) {
                 // Save custom ADB path
                 await updateConfig('custom_adb_path', selectedPath);
-                settingsEls.adbInfo.textContent = `自訂版本 ${testResult.version} - ${truncateFilePath(selectedPath, 30)}`;
+                const config = await window.getConfig();
+                const pathLength = config.debug_mode ? 12 : 35;
+                settingsEls.adbInfo.textContent = `自訂版本 ${testResult.version} - ${truncateFilePath(selectedPath, pathLength)}`;
                 showSnackAlert(`ADB 設定成功！版本：${testResult.version}`);
-                
-                // 重新啟動 ADB tracking
+
                 try {
                     await window.restartAdbTracking();
                 } catch (error) {
@@ -195,9 +217,8 @@ async function selectAdbFile() {
             } else {
                 settingsEls.adbInfo.textContent = '測試失敗，請重新選擇';
                 showSnackAlert(`ADB 測試失敗：${testResult.error}`);
-                
-                // 恢復原來的顯示
-                setTimeout(() => loadAdbInfo(), 2000);
+
+                setTimeout(() => loadAdbInfo(), 1000);
             }
         }
     } catch (error) {
@@ -213,8 +234,7 @@ async function resetToBuiltinAdb() {
         await updateConfig('custom_adb_path', null);
         await loadAdbInfo();
         showSnackAlert('已恢復使用內建 ADB');
-        
-        // 重新啟動 ADB tracking
+
         try {
             await window.restartAdbTracking();
         } catch (error) {
@@ -239,12 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
             applyColorScheme(defaultColor);
         });
     }
-    
+
     // ADB event listeners
     if (settingsEls.adbSelect) {
         settingsEls.adbSelect.addEventListener('click', selectAdbFile);
     }
-    
+
     if (settingsEls.adbReset) {
         settingsEls.adbReset.addEventListener('click', () => {
             showQuestionDialog({
