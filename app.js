@@ -74,7 +74,6 @@ function getDefaultExtractPath() {
 // Default config
 const defaultConfig = {
     darkmode: true,
-    delete_data: false,
     debug_mode: false,
     extract_path: getDefaultExtractPath(),
     theme_color: '#6750A4',
@@ -136,7 +135,7 @@ async function initTemp() {
 function createWindow() {
     console.log('[App] createWindow: opening main window');
     mainWindow = new BrowserWindow({
-        width: 850, height: 900, resizable: false,
+        width: 750, height: 800, resizable: false,
         autoHideMenuBar: true,
         backgroundColor: '#0f0f0f',
         title: '解除安裝原廠應用程式免ROOT',

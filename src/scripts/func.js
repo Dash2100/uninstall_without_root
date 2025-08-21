@@ -521,8 +521,6 @@ async function toggleAppState(pkg, enable, dialog) {
 function promptDelete(curDialog, pkg) {
     curDialog.open = false;
     const nameEl = document.getElementById('delete-app-name');
-    const dataEl = document.getElementById('delete-app-data');
-    window.getConfig().then(cfg => dataEl.checked = cfg.delete_data);
     nameEl.textContent = pkg;
     els.dialogDeleteApp.open = true;
     document.getElementById('confirm-delete-btn').onclick = () => {
@@ -538,10 +536,9 @@ async function uninstallApp(pkg) {
         return;
     }
 
-    const delData = document.getElementById('delete-app-data').checked;
     showSnackAlert(`正在刪除應用程式: ${pkg}...`);
     try {
-        await deleteAPP(pkg, delData);
+        await deleteAPP(pkg, false);
         showSnackAlert(`應用程式 ${pkg} 已成功刪除`);
         await refreshAppList();
     } catch (err) {

@@ -1,7 +1,6 @@
 // Select settings elements
 const settingsEls = {
     darkMode: document.getElementById('settings-darkmode'),
-    appData: document.getElementById('settings-appdata'),
     debugMode: document.getElementById('settings-debugmode'),
     colorPicker: document.getElementById('settings-colorpicker'),
     resetColor: document.getElementById('settings-reset-color'),
@@ -16,12 +15,11 @@ const settingsEls = {
 
 // Load configuration and update UI
 async function loadConfig() {
-    const { darkmode, delete_data, debug_mode, extract_path, theme_color } =
+    const { darkmode, debug_mode, extract_path, theme_color } =
         await window.getConfig();
-    console.log('[config] Loaded config:', { darkmode, delete_data, debug_mode, extract_path, theme_color });
+    console.log('[config] Loaded config:', { darkmode, debug_mode, extract_path, theme_color });
 
     settingsEls.darkMode.checked = darkmode;
-    settingsEls.appData.checked = delete_data;
     settingsEls.debugMode.checked = debug_mode;
 
     // Update extract path display based on debug mode
@@ -64,9 +62,6 @@ settingsEls.darkMode.addEventListener('change', (e) => {
     document.body.classList.toggle('mdui-theme-dark', checked);
 });
 
-settingsEls.appData.addEventListener('change', (e) => {
-    updateConfig('delete_data', e.target.checked);
-});
 
 settingsEls.debugMode.addEventListener('change', (e) => {
     const checked = e.target.checked;
