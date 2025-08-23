@@ -10,6 +10,8 @@ let wirelessConnectionState = {
     isConnecting: false
 };
 
+window.wirelessConnectionState = wirelessConnectionState;
+
 // Persistent status UI
 function createPersistentStatus(message) {
     const snackbar = document.createElement('mdui-snackbar');
@@ -277,7 +279,9 @@ async function attemptWirelessConnection(address, pairingPort, connectPort, stat
 
                 setTimeout(() => removePersistentStatus(statusElement), 2000);
 
-                if (typeof getDevice === 'function') {
+                if (typeof window.handleWirelessConnection === 'function') {
+                    await window.handleWirelessConnection(`${address}:${connectPort}`);
+                } else if (typeof getDevice === 'function') {
                     await getDevice();
                 }
             } else {
@@ -424,7 +428,9 @@ function initWirelessConnection() {
 
                 setTimeout(() => removePersistentStatus(statusElement), 2000);
 
-                if (typeof getDevice === 'function') {
+                if (typeof window.handleWirelessConnection === 'function') {
+                    await window.handleWirelessConnection(`${ip}:5555`);
+                } else if (typeof getDevice === 'function') {
                     await getDevice();
                 }
 

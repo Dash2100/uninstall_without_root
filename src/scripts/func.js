@@ -577,6 +577,23 @@ function downloadAPK(pkg, dialog) {
         });
 }
 
+// Handle wireless connection success
+window.handleWirelessConnection = async function (deviceId) {
+    console.log('[Wireless] Handling wireless connection success for device:', deviceId);
+
+    selectedDevice = deviceId;
+    isConnected = true;
+    disconnectionNotified = false;
+    noDeviceNotified = false;
+    toggleConnectionIcon(true, false);
+
+    try {
+        await refreshAppList();
+    } catch (err) {
+        console.error('[Wireless] Error refreshing app list after wireless connection:', err);
+    }
+};
+
 // Handle device change events (called from integration.js)
 let appInitialized = false;
 window.handleDeviceChange = function (deviceList) {
@@ -585,6 +602,14 @@ window.handleDeviceChange = function (deviceList) {
     // Ignore initial device status during app startup
     if (!appInitialized) {
         console.log('[USB] Ignoring device change during app initialization');
+        return;
+    }
+
+    // Check if this is a wireless connection
+    const isWirelessDevice = deviceList.includes('.') && deviceList.includes(':');
+    if (isWirelessDevice && typeof window.wirelessConnectionState !== 'undefined' &&
+        window.wirelessConnectionState && window.wirelessConnectionState.isConnecting) {
+        console.log('[USB] Ignoring device change during wireless connection process');
         return;
     }
 
@@ -607,7 +632,7 @@ window.handleDeviceChange = function (deviceList) {
                 handleDeviceDisconnected();
             }
         }
-    }, 800); // Increase delay to allow device to settle
+    }, 800);
 };
 
 // Setup USB Device Change Monitoring
@@ -721,7 +746,6 @@ function initApp() {
 
     // remove automatic device selection dialog
     getDevice().then(() => {
-        // Mark app as initialized after initial device check
         setTimeout(() => {
             appInitialized = true;
             console.log('[App] Initialization complete, USB monitoring active');
