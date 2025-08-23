@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="renderer" content="webkit" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;" />
 
     <!-- Node.js integration script -->
     <script src="./scripts/lib/integration.js"></script>
@@ -15,6 +16,7 @@
     <script src="./scripts/alert.js" defer></script>
     <script src="./scripts/terminal.js" defer></script>
     <script src="./scripts/pages.js" defer></script>
+    <script src="./scripts/wireless.js" defer></script>
     <script src="./scripts/func.js" defer></script>
 
     <!-- mdui -->
@@ -156,7 +158,8 @@
                     <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
                     <div class="flex flex-col justify-center flex-1 min-w-0">
                         <p class="text-lg">ADB 執行檔路徑</p>
-                        <p class="text-md text-gray-500 whitespace-nowrap truncate max-w-full" id="settings-adb-info">使用內建版本</p>
+                        <p class="text-md text-gray-500 whitespace-nowrap truncate max-w-full" id="settings-adb-info">
+                            使用內建版本</p>
                     </div>
 
                     <div class="flex items-center my-auto ml-auto mr-6 gap-3">
@@ -340,7 +343,7 @@
                 <div class="flex flex-col">
                     <h2 class="text-lg mt-4 font-bold">1. 掃描 QR Code</h2>
                     <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Rickrolling_QR_code.png"
-                        alt="QR Code Example" class="w-52 mx-auto my-3 rounded-lg">
+                        alt="Wireless ADB QR Code" class="w-52 mx-auto my-3 rounded-lg">
                 </div>
 
                 <div class="flex flex-col">

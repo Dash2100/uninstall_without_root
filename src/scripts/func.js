@@ -37,6 +37,7 @@ let disabledApps = [];
 let connectedDevices = [];
 let selectedDevice = null;
 
+
 // UI Helpers
 function toggleConnectionIcon(connected, loading = false) {
     els.iconConnected.classList.toggle('hidden', !connected || loading);
@@ -113,20 +114,12 @@ async function getDevice() {
         const output = await runADBcommand('devices');
         if (!output.includes('List of devices attached')) {
             clearAppList();
-            if (!noDeviceNotified) {
-                showSnackAlert('無法連接到設備');
-                noDeviceNotified = true;
-            }
             toggleConnectionIcon(false, false);
             return;
         }
 
         const lines = output.trim().split('\n').slice(1).filter(Boolean);
         if (!lines.length) {
-            if (!noDeviceNotified) {
-                showSnackAlert('目前沒有連接到設備');
-                noDeviceNotified = true;
-            }
             toggleConnectionIcon(false, false);
             clearAppList();
             return;
@@ -645,13 +638,6 @@ els.searchInput.addEventListener('clear', () => {
     }
 });
 
-els.iconWirelessConnect.addEventListener('click', () => {
-    if (isConnected) {
-        showDisconnectDialog(true);
-        return;
-    }
-    els.dialogWirelessConnect.open = true;
-});
 
 function confirmWarning() {
     els.dialogWarning.open = false;
@@ -682,31 +668,45 @@ function showDisconnectDialog(openWirelessAfter = false) {
     els.dialogDisconnectConfirm.open = true;
 }
 
-function confirmDisconnect() {
+async function confirmDisconnect() {
     els.dialogDisconnectConfirm.open = false;
+
+    // Execute proper disconnect commands
+    await executeDisconnectCommands();
 
     isConnected = false;
     selectedDevice = null;
     toggleConnectionIcon(false, false);
 
     clearAppList();
-
-    // showSnackAlert('已斷開現有連接');
 }
 
-function confirmDisconnectAndWireless() {
+async function confirmDisconnectAndWireless() {
     els.dialogDisconnectConfirm.open = false;
+
+    // Execute proper disconnect commands
+    await executeDisconnectCommands();
 
     isConnected = false;
     selectedDevice = null;
     toggleConnectionIcon(false, false);
 
     clearAppList();
-
-    // showSnackAlert('已斷開現有連接');
 
     els.dialogWirelessConnect.open = true;
 }
+
+async function executeDisconnectCommands() {
+    try {
+        showSnackAlert('正在中斷連線...');
+        await runADBcommand('disconnect');
+        // Remove the success toast to reduce notification count
+    } catch (error) {
+        console.error('Disconnect commands failed:', error);
+        showSnackAlert('中斷連線時發生錯誤');
+    }
+}
+
 
 // initialize the app
 function initApp() {
