@@ -1,31 +1,53 @@
-// Execute an ADB command
-async function runADBcommand(command) {
+// Execute an ADB command with improved error handling
+async function runADBcommand(command, retries = 1, suppressOutput = false) {
     console.log('[adb] ADB command:', command);
-    appendToTerminal(`> ${command}`, 'command');
-    try {
-        const response = await window.executeAdbCommand(command);
-        appendToTerminal(response || '(No output)', 'response');
-        return response;
-    } catch (error) {
-        console.error('[adb] ADB error:', error);
+    if (!suppressOutput) {
+        appendToTerminal(`> ${command}`, 'command');
+    }
+    
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await window.executeAdbCommand(command);
+            if (!suppressOutput) {
+                appendToTerminal(response || '(No output)', 'response');
+            }
+            return response;
+        } catch (error) {
+            lastError = error;
+            console.error(`[adb] ADB error (attempt ${attempt + 1}/${retries + 1}):`, error);
 
-        // Check if error message includes device offline/not found patterns
-        const errorString = error.toString().toLowerCase();
-        const messageString = error.message ? error.message.toLowerCase() : '';
+            // Check if error message includes device offline/not found patterns
+            const errorString = error.toString().toLowerCase();
+            const messageString = error.message ? error.message.toLowerCase() : '';
 
-        if (errorString.includes('device offline') || errorString.includes('device not found') ||
-            errorString.includes('not found') ||
-            messageString.includes('device offline') || messageString.includes('device not found') ||
-            messageString.includes('not found')) {
-            appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
+            if (errorString.includes('device offline') || errorString.includes('device not found') ||
+                errorString.includes('not found') ||
+                messageString.includes('device offline') || messageString.includes('device not found') ||
+                messageString.includes('not found')) {
+                if (!suppressOutput) {
+                    appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
+                }
 
-            // Set UI state to disconnected
-            handleDeviceDisconnected();
-            return;
+                // Set UI state to disconnected
+                if (typeof handleDeviceDisconnected === 'function') {
+                    handleDeviceDisconnected();
+                }
+                throw error; // Don't retry for device not found errors
+            }
+
+            // For other errors, retry if attempts remaining
+            if (attempt < retries) {
+                console.log(`[adb] Retrying command in 500ms... (${retries - attempt} attempts left)`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+            }
+
+            if (!suppressOutput) {
+                appendToTerminal(error.toString(), 'error');
+            }
+            throw error;
         }
-
-        appendToTerminal(error.toString(), 'error');
-        throw error;
     }
 }
 

@@ -22,12 +22,11 @@ window.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.on('adb-device-changed', (event, deviceList) => {
         console.log('[Integration] USB device change:', deviceList);
 
-        // check if we have the necessary functions available
         if (typeof window.handleDeviceChange === 'function') {
             window.handleDeviceChange(deviceList);
         } else {
             console.warn('[Integration] handleDeviceChange function not available yet');
-            // retry after a delay to allow other scripts to load
+
             setTimeout(() => {
                 if (typeof window.handleDeviceChange === 'function') {
                     window.handleDeviceChange(deviceList);
