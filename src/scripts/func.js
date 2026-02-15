@@ -37,6 +37,9 @@ let disabledApps = [];
 let connectedDevices = [];
 let selectedDevice = null;
 let useHelperMethod = false;
+let isFetchingAppInfo = false;
+let currentFilter = 'all'; // 'all', 'user', 'system'
+let currentSort = 'name'; // 'name', 'package', 'status'
 
 
 // UI Helpers
@@ -409,10 +412,30 @@ function handleVirtualScroll() {
 function renderAppList({ apps }) {
     clearPlaceholders();
 
-    virtualScrollData.allApps = [
-        ...Object.values(apps.user).map(app => ({ ...app, type: '使用者程式' })),
-        ...Object.values(apps.system).map(app => ({ ...app, type: '系統程式' }))
-    ];
+    let allApps = [];
+    if (currentFilter === 'all' || currentFilter === 'user') {
+        allApps.push(...Object.values(apps.user).map(app => ({ ...app, type: '使用者程式' })));
+    }
+    if (currentFilter === 'all' || currentFilter === 'system') {
+        allApps.push(...Object.values(apps.system).map(app => ({ ...app, type: '系統程式' })));
+    }
+
+    // Apply sort
+    allApps.sort((a, b) => {
+        if (currentSort === 'name') {
+            return (a.label || a.package_name).localeCompare(b.label || b.package_name);
+        } else if (currentSort === 'package') {
+            return a.package_name.localeCompare(b.package_name);
+        } else if (currentSort === 'status') {
+            // Disabled apps first
+            const aDisabled = disabledApps.includes(a.package_name) ? 0 : 1;
+            const bDisabled = disabledApps.includes(b.package_name) ? 0 : 1;
+            return aDisabled - bDisabled || (a.label || a.package_name).localeCompare(b.label || b.package_name);
+        }
+        return 0;
+    });
+
+    virtualScrollData.allApps = allApps;
 
     if (!virtualScrollData.containerHeight) {
         initVirtualScroll();
@@ -471,27 +494,58 @@ function renderVirtualAppList() {
 function createAppCard(app, type) {
     const tmpl = els.appCardTemplate.innerHTML;
     const enabled = !disabledApps.includes(app.package_name);
-    const status = enabled ? '啟用中' : '停用中';
-    const statusClass = enabled ? 'bg-green-900 text-white' : 'bg-red-900 text-white';
     const label = app.label || app.package_name;
     // In helper mode: show type and packageName; in fallback mode: only show type
     const subtitle = useHelperMethod
         ? `${type} ${app.package_name}`
         : type;
+    // Disabled apps get a different icon and red-tinted style
+    const icon = enabled ? 'adb' : 'block';
+    const iconStyle = enabled ? '' : 'background-color: rgba(239, 68, 68, 0.2); --mdui-color-primary: #ef4444; color: #ef4444;';
     const html = tmpl
         .replace(/{{app.packageName}}/g, app.package_name)
         .replace(/{{app.label}}/g, label)
-        .replace(/{{app.status}}/g, status)
-        .replace(/{{app.statusClass}}/g, statusClass)
+        .replace(/{{app.icon}}/g, icon)
+        .replace(/{{app.iconStyle}}/g, iconStyle)
         .replace(/{{app.subtitle}}/g, subtitle);
     const wrapper = document.createElement('template');
     wrapper.innerHTML = html.trim();
     const card = wrapper.content.firstChild;
     card.classList.add('app-card');
-    card.addEventListener('click', () => {
-        // Only open app info if device is connected
-        if (isConnected) {
-            viewAppInfo(app.package_name);
+    card.addEventListener('click', async () => {
+        if (!isConnected || isFetchingAppInfo) return;
+        isFetchingAppInfo = true;
+        const avatar = card.querySelector('mdui-avatar');
+        const originalIcon = icon;
+        const originalStyle = avatar ? avatar.getAttribute('style') || '' : '';
+        if (avatar) {
+            // Replace avatar with a spinner placeholder
+            const spinnerWrapper = document.createElement('div');
+            spinnerWrapper.className = 'my-auto mx-4 flex items-center justify-center';
+            spinnerWrapper.style.width = '40px';
+            spinnerWrapper.style.height = '40px';
+            spinnerWrapper.style.borderRadius = '50%';
+            if (!enabled) {
+                spinnerWrapper.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+            }
+            const spinner = document.createElement('mdui-circular-progress');
+            spinner.style.width = '24px';
+            spinner.style.height = '24px';
+            if (!enabled) {
+                spinner.style.cssText = 'width:24px;height:24px;--mdui-color-primary:239,68,68;';
+            }
+            spinnerWrapper.appendChild(spinner);
+            avatar.replaceWith(spinnerWrapper);
+            avatar._spinnerWrapper = spinnerWrapper;
+        }
+        try {
+            await viewAppInfo(app.package_name);
+        } finally {
+            if (avatar && avatar._spinnerWrapper) {
+                avatar._spinnerWrapper.replaceWith(avatar);
+                delete avatar._spinnerWrapper;
+            }
+            isFetchingAppInfo = false;
         }
     });
     return card;
@@ -583,19 +637,17 @@ function showInfoDialog(appInfo) {
         return;
     }
 
+    const statusClass = appInfo.enabled ? 'bg-green-900 text-white' : 'bg-red-900 text-white';
     const html = els.appInfoTemplate.innerHTML
         .replace(/{{app.packageName}}/g, appInfo.packageName)
         .replace(/{{app.label}}/g, appInfo.label)
         .replace(/{{app.version}}/g, appInfo.version)
-        .replace(/{{app.uid}}/g, appInfo.uid ? `UID: ${appInfo.uid}` : '')
+        .replace(/{{app.uid}}/g, appInfo.uid || '')
         .replace(/{{app.type}}/g, appInfo.isSystem ? '系統程式' : '使用者程式')
+        .replace(/{{app.statusClass}}/g, statusClass)
         .replace(/{{app.isEnable}}/g, appInfo.enabled ? '啟用中' : '已停用')
         .replace(/{{app.installTime}}/g, appInfo.installTime)
-        .replace(/{{app.updateTime}}/g, appInfo.updateTime)
-        .replace(/{{app.apkPath}}/g, appInfo.apkPath)
-        .replace(/{{app.permissions}}/g, appInfo.permissions.length
-            ? appInfo.permissions.join('\n')
-            : '');
+        .replace(/{{app.updateTime}}/g, appInfo.updateTime);
     const div = document.createElement('div');
     div.innerHTML = html;
     const dialog = div.querySelector('.dialog-appinfo');
@@ -787,6 +839,73 @@ window.handleDeviceChange = function (deviceList) {
 // Setup USB Device Change Monitoring
 function setupUSBDeviceMonitoring() {
     console.log('[USB] Device change monitoring handler registered');
+}
+
+// Filter/sort menu logic
+const filterBtn = document.getElementById('button-filter');
+const filterMenu = document.getElementById('filter-menu');
+
+// Filter menu items
+const filterItems = {
+    all: document.getElementById('filter-all'),
+    user: document.getElementById('filter-user'),
+    system: document.getElementById('filter-system')
+};
+const sortItems = {
+    name: document.getElementById('sort-name'),
+    package: document.getElementById('sort-package'),
+    status: document.getElementById('sort-status')
+};
+
+function updateFilterMenuIcons() {
+    for (const [key, item] of Object.entries(filterItems)) {
+        item.setAttribute('icon', key === currentFilter ? 'done' : '');
+    }
+    for (const [key, item] of Object.entries(sortItems)) {
+        item.setAttribute('icon', key === currentSort ? 'done' : '');
+    }
+}
+
+filterBtn.addEventListener('click', (e) => {
+    const rect = filterBtn.getBoundingClientRect();
+    filterMenu.style.top = `${rect.bottom + 4}px`;
+    filterMenu.style.right = '20px';
+    filterMenu.style.left = 'auto';
+    filterMenu.classList.toggle('hidden');
+    updateFilterMenuIcons();
+});
+
+// Close menu on outside click
+document.addEventListener('click', (e) => {
+    if (!filterMenu.contains(e.target) && e.target !== filterBtn) {
+        filterMenu.classList.add('hidden');
+    }
+});
+
+for (const [key, item] of Object.entries(filterItems)) {
+    item.addEventListener('click', () => {
+        currentFilter = key;
+        updateFilterMenuIcons();
+        filterMenu.classList.add('hidden');
+        if (isConnected) {
+            const term = els.searchInput.value.trim().toLowerCase();
+            const toShow = term ? filterApps(appsList, term) : appsList;
+            renderAppList(toShow);
+        }
+    });
+}
+
+for (const [key, item] of Object.entries(sortItems)) {
+    item.addEventListener('click', () => {
+        currentSort = key;
+        updateFilterMenuIcons();
+        filterMenu.classList.add('hidden');
+        if (isConnected) {
+            const term = els.searchInput.value.trim().toLowerCase();
+            const toShow = term ? filterApps(appsList, term) : appsList;
+            renderAppList(toShow);
+        }
+    });
 }
 
 // Event Listeners

@@ -71,7 +71,20 @@
             <mdui-button-icon variant="filled" icon="search" class="h-12 w-12" id="button-search"></mdui-button-icon>
             <mdui-button-icon variant="filled" icon="refresh" class="h-12 w-12"
                 id="button-applist-refresh"></mdui-button-icon>
+            <mdui-button-icon variant="filled" icon="filter_list" class="h-12 w-12"
+                id="button-filter"></mdui-button-icon>
         </div>
+
+        <!-- filter/sort dropdown menu -->
+        <mdui-menu id="filter-menu" class="hidden" style="position: absolute; z-index: 100;">
+            <mdui-menu-item id="filter-all" icon="done">全部應用程式</mdui-menu-item>
+            <mdui-menu-item id="filter-user">使用者程式</mdui-menu-item>
+            <mdui-menu-item id="filter-system">系統程式</mdui-menu-item>
+            <mdui-divider></mdui-divider>
+            <mdui-menu-item id="sort-name" icon="done">依名稱排序</mdui-menu-item>
+            <mdui-menu-item id="sort-package">依包名排序</mdui-menu-item>
+            <mdui-menu-item id="sort-status">依狀態排序</mdui-menu-item>
+        </mdui-menu>
 
         <!-- content -->
         <div class="p-8 px-5 pt-3 flex flex-col app-list">
@@ -339,13 +352,10 @@
 <template id="app-card-template">
     <mdui-card clickable variant="elevated" class="app-card w-full h-20 flex rounded-none"
         data-package-name="{{app.packageName}}">
-        <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
+        <mdui-avatar class="my-auto mx-4" icon="{{app.icon}}" style="{{app.iconStyle}}"></mdui-avatar>
         <div class="flex flex-col justify-center flex-1 min-w-0">
             <p class="text-lg truncate">{{app.label}}</p>
-            <div class="flex items-center gap-1">
-                <span class="text-xs px-1.5 py-0.5 rounded-full {{app.statusClass}}">{{app.status}}</span>
-                <p class="text-sm text-gray-500 truncate">{{app.subtitle}}</p>
-            </div>
+            <p class="text-sm text-gray-500 truncate">{{app.subtitle}}</p>
         </div>
     </mdui-card>
 </template>
@@ -368,14 +378,12 @@
         <span slot="description">
             <div class="flex flex-col gap-2">
                 <div class="app-info-row"><p><span class="text-gray-400">包名:</span> <span class="app-info-value">{{app.packageName}}</span></p></div>
+                <div class="app-info-row flex items-center gap-2"><span class="text-gray-400">狀態:</span> <span class="text-xs px-2 py-0.5 rounded-full {{app.statusClass}}">{{app.isEnable}}</span></div>
                 <div class="app-info-row"><p><span class="text-gray-400">版本:</span> <span class="app-info-value">{{app.version}}</span></p></div>
                 <div class="app-info-row"><p><span class="text-gray-400">類型:</span> <span class="app-info-value">{{app.type}}</span></p></div>
-                <div class="app-info-row"><p><span class="text-gray-400">狀態:</span> <span class="app-info-value">{{app.isEnable}}</span></p></div>
                 <div class="app-info-row"><p><span class="text-gray-400">UID:</span> <span class="app-info-value">{{app.uid}}</span></p></div>
                 <div class="app-info-row"><p><span class="text-gray-400">安裝時間:</span> <span class="app-info-value">{{app.installTime}}</span></p></div>
                 <div class="app-info-row"><p><span class="text-gray-400">更新時間:</span> <span class="app-info-value">{{app.updateTime}}</span></p></div>
-                <div class="app-info-row"><p><span class="text-gray-400">APK 路徑:</span> <span class="app-info-value text-xs break-all">{{app.apkPath}}</span></p></div>
-                <div class="app-info-row app-info-permissions"><p><span class="text-gray-400">權限:</span></p><pre class="app-info-value text-xs text-gray-300 whitespace-pre-wrap break-all max-h-32 overflow-auto mt-1">{{app.permissions}}</pre></div>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">
