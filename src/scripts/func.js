@@ -38,6 +38,7 @@ let connectedDevices = [];
 let selectedDevice = null;
 let useHelperMethod = false;
 let isFetchingAppInfo = false;
+let manuallyDisconnected = false;
 let currentFilter = 'all'; // 'all', 'user', 'system'
 let currentSort = 'name'; // 'name', 'package', 'status'
 
@@ -64,10 +65,21 @@ function clearPlaceholders() {
     els.appListContainer.style.display = 'block';
 }
 
-function showLoading() {
+function showLoading(label) {
     els.appListContainer.style.display = 'none';
     els.appListDisconnected.style.display = 'none';
     els.appListLoading.style.display = 'flex';
+    const loadingLabel = document.getElementById('app-list-loading-label');
+    if (loadingLabel) {
+        loadingLabel.textContent = label || '正在載入應用程式列表...';
+    }
+}
+
+function updateLoadingLabel(label) {
+    const loadingLabel = document.getElementById('app-list-loading-label');
+    if (loadingLabel) {
+        loadingLabel.textContent = label;
+    }
 }
 
 // Handle device disconnection
@@ -519,13 +531,15 @@ function createAppCard(app, type) {
         const originalIcon = icon;
         const originalStyle = avatar ? avatar.getAttribute('style') || '' : '';
         if (avatar) {
-            // Replace avatar with a spinner placeholder
+            // Replace avatar with a spinner placeholder, keeping the original background
             const spinnerWrapper = document.createElement('div');
             spinnerWrapper.className = 'my-auto mx-4 flex items-center justify-center';
             spinnerWrapper.style.width = '40px';
             spinnerWrapper.style.height = '40px';
             spinnerWrapper.style.borderRadius = '50%';
-            if (!enabled) {
+            if (enabled) {
+                spinnerWrapper.style.backgroundColor = 'rgb(var(--mdui-color-primary-container))';
+            } else {
                 spinnerWrapper.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
             }
             const spinner = document.createElement('mdui-circular-progress');
@@ -780,6 +794,7 @@ function downloadAPK(pkg, dialog) {
 // Handle wireless connection success
 window.handleWirelessConnection = async function (deviceId) {
     console.log('[Wireless] Handling wireless connection success for device:', deviceId);
+    manuallyDisconnected = false;
 
     try {
         await finalizeConnection(deviceId);
@@ -825,6 +840,16 @@ window.handleDeviceChange = function (deviceList) {
 
     setTimeout(async () => {
         if (hasValidDevice) {
+            if (manuallyDisconnected) {
+                console.log('[USB] Ignoring device change after manual disconnect');
+                return;
+            }
+            // Don't auto-connect while wireless dialog is open
+            const wirelessDialog = document.querySelector('.dialog-wireless-connect');
+            if (wirelessDialog && wirelessDialog.open) {
+                console.log('[USB] Ignoring device change while wireless dialog is open');
+                return;
+            }
             console.log('[USB] Valid device detected, refreshing connection');
             await getDevice();
         } else {
@@ -942,6 +967,7 @@ function handleConnectionClick() {
     if (isConnected) {
         showDisconnectDialog(false);
     } else {
+        manuallyDisconnected = false;
         getDevice();
     }
 }
@@ -970,6 +996,7 @@ async function confirmDisconnect() {
     isConnected = false;
     selectedDevice = null;
     useHelperMethod = false;
+    manuallyDisconnected = true;
     toggleConnectionIcon(false, false);
 
     clearAppList();
@@ -984,6 +1011,7 @@ async function confirmDisconnectAndWireless() {
     isConnected = false;
     selectedDevice = null;
     useHelperMethod = false;
+    manuallyDisconnected = true;
     toggleConnectionIcon(false, false);
 
     clearAppList();
@@ -993,9 +1021,8 @@ async function confirmDisconnectAndWireless() {
 
 async function executeDisconnectCommands() {
     try {
-        showSnackAlert('正在中斷連線...');
         await runADBcommand('disconnect');
-        // Remove the success toast to reduce notification count
+        showSnackAlert('已中斷連線目前裝置');
     } catch (error) {
         console.error('Disconnect commands failed:', error);
         showSnackAlert('中斷連線時發生錯誤');

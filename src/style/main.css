@@ -39,6 +39,11 @@ mdui-menu-item::part(label) {
 
 .dialog-appinfo::part(body) {
     padding-top: 40px;
+    overflow-x: hidden;
+}
+
+.app-info-value {
+    word-break: break-all;
 }
 
 .app-card {

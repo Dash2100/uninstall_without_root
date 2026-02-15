@@ -163,7 +163,8 @@ async function startWirelessScanning() {
             const bonjour = window.require('bonjour')();
             wirelessConnectionState.bonjour = bonjour;
 
-            const devicePorts = [];
+            wirelessConnectionState.devicePorts = [];
+            const devicePorts = wirelessConnectionState.devicePorts;
             let pairingServiceInfo = null;
             let connectionStarted = false;
             const discoveredServices = new Set();
@@ -204,25 +205,12 @@ async function startWirelessScanning() {
                     const statusElement = createPersistentStatus(`發現裝置：${address}`);
                     attemptWirelessConnection(address, service.port, devicePorts[0], statusElement);
                 } else {
-                    console.log(`[wireless] device_ports is empty, waiting for connect service`);
-                    const statusElement = createPersistentStatus(`發現裝置：${address} - 等待連線服務`);
+                    // Start pairing immediately without waiting for connect service
+                    console.log(`[wireless] device_ports is empty, pairing first then discovering connect port`);
+                    connectionStarted = true;
+                    const statusElement = createPersistentStatus(`發現裝置：${address} - 配對中`);
                     wirelessConnectionState.statusElement = statusElement;
-                    
-                    // 設置等待連線服務的超時
-                    wirelessConnectionState.waitingTimeout = setTimeout(() => {
-                        console.log('[wireless] Waiting for connect service timed out, suggesting restart');
-                        if (wirelessConnectionState.statusElement) {
-                            updatePersistentStatus(wirelessConnectionState.statusElement, '等待連線服務逾時，請重新開啟裝置的無線偵錯');
-                            
-                            // 10秒後清除提示
-                            setTimeout(() => {
-                                if (wirelessConnectionState.statusElement) {
-                                    removePersistentStatus(wirelessConnectionState.statusElement);
-                                }
-                            }, 10000);
-                        }
-                        wirelessConnectionState.waitingTimeout = null;
-                    }, 15000); // 15秒超時
+                    attemptWirelessConnection(address, service.port, null, statusElement);
                 }
 
             } else if (serviceType.includes('adb-tls-connect')) {
@@ -237,22 +225,19 @@ async function startWirelessScanning() {
                 devicePorts.push(service.port);
                 console.log(`[wireless] device_ports now has:`, devicePorts);
 
-                // 關鍵修復：當 connect 服務被發現時，檢查是否可以開始連線
                 if (pairingServiceInfo && !connectionStarted) {
                     console.log(`[wireless] Both pairing and connect services are now available, starting connection`);
                     connectionStarted = true;
-                    
-                    // 清除等待超時
+
                     if (wirelessConnectionState.waitingTimeout) {
                         clearTimeout(wirelessConnectionState.waitingTimeout);
                         wirelessConnectionState.waitingTimeout = null;
                     }
-                    
-                    // 更新現有的狀態提示
+
                     if (wirelessConnectionState.statusElement) {
                         updatePersistentStatus(wirelessConnectionState.statusElement, `發現裝置：${pairingServiceInfo.address} - 開始連線`);
                     }
-                    
+
                     attemptWirelessConnection(pairingServiceInfo.address, pairingServiceInfo.port, service.port, wirelessConnectionState.statusElement || createPersistentStatus(`發現裝置：${pairingServiceInfo.address}`));
                 }
             }
@@ -306,6 +291,75 @@ async function startWirelessScanning() {
             stopWirelessScanning();
         }
     }, 50); // 50ms 延遲，足以讓 dialog 先顯示
+}
+
+// Check if a TCP port is open on a host
+function checkPort(host, port, timeout = 300) {
+    const net = window.require('net');
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        socket.setTimeout(timeout);
+        socket.on('connect', () => { socket.destroy(); resolve(true); });
+        socket.on('timeout', () => { socket.destroy(); resolve(false); });
+        socket.on('error', () => { socket.destroy(); resolve(false); });
+        socket.connect(port, host);
+    });
+}
+
+// Scan a range of ports in parallel batches
+async function scanPortRange(host, startPort, endPort, knownPairingPort, batchSize = 200) {
+    for (let batch = startPort; batch <= endPort; batch += batchSize) {
+        const batchEnd = Math.min(batch + batchSize - 1, endPort);
+        const promises = [];
+        for (let port = batch; port <= batchEnd; port++) {
+            if (port === knownPairingPort) continue;
+            promises.push(
+                checkPort(host, port).then(open => open ? port : null)
+            );
+        }
+        const results = await Promise.all(promises);
+        const openPort = results.find(p => p !== null);
+        if (openPort) return openPort;
+    }
+    return null;
+}
+
+// Discover the connect port after pairing via TCP port scan
+async function discoverConnectPort(address, pairingPort) {
+    console.log('[wireless] Discovering connect port for', address, '(pairing port:', pairingPort, ')');
+
+    // Check existing bonjour-discovered ports first
+    if (wirelessConnectionState.devicePorts && wirelessConnectionState.devicePorts.length > 0) {
+        const port = wirelessConnectionState.devicePorts[0];
+        console.log('[wireless] Found connect port in existing scan:', port);
+        return port;
+    }
+
+    // Strategy 1: Scan ports near the pairing port first (most likely range)
+    console.log('[wireless] Scanning ports near pairing port...');
+    const nearStart = Math.max(30000, pairingPort - 5000);
+    const nearEnd = Math.min(50000, pairingPort + 5000);
+    let port = await scanPortRange(address, nearStart, nearEnd, pairingPort);
+    if (port) {
+        console.log('[wireless] Found connect port near pairing port:', port);
+        return port;
+    }
+
+    // Strategy 2: Wider scan of common wireless debugging range
+    console.log('[wireless] Near scan failed, scanning wider range...');
+    port = await scanPortRange(address, 30000, nearStart, pairingPort);
+    if (port) {
+        console.log('[wireless] Found connect port in wider scan:', port);
+        return port;
+    }
+    port = await scanPortRange(address, nearEnd, 50000, pairingPort);
+    if (port) {
+        console.log('[wireless] Found connect port in wider scan:', port);
+        return port;
+    }
+
+    console.log('[wireless] Connect port discovery failed');
+    return null;
 }
 
 // Attempt wireless pairing and connection
@@ -410,49 +464,68 @@ async function attemptWirelessConnection(address, pairingPort, connectPort, stat
 
         if (pairResult && (pairResult.includes('Successfully paired') || pairResult.includes('成功'))) {
             console.log('[wireless] Pairing successful');
+
+            // Close dialog immediately after pairing success
+            // Keep isConnecting = true to block handleDeviceChange from triggering duplicate connection
+            removePersistentStatus(statusElement);
+            if (dialogWirelessConnect) {
+                restoreDialogCloseAttributes(dialogWirelessConnect);
+                dialogWirelessConnect.open = false;
+            }
+            stopWirelessScanning();
+
+            // Show app list loading with progress label
+            if (typeof showLoading === 'function') {
+                showLoading('配對成功，正在探索連線端口...');
+            }
+            toggleConnectionIcon(false, true);
+
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            updatePersistentStatus(statusElement, '連線中...');
-            console.log(`[wireless] Running connect command: connect ${address}:${connectPort}`);
+            // Discover connect port
+            let resolvedConnectPort = connectPort;
+            if (!resolvedConnectPort) {
+                resolvedConnectPort = await discoverConnectPort(address, pairingPort);
+                if (!resolvedConnectPort) {
+                    throw new Error('Unable to discover connect port after pairing');
+                }
+                console.log(`[wireless] Discovered connect port: ${resolvedConnectPort}`);
+            }
 
-            const connectResult = await runADBcommand(`connect ${address}:${connectPort}`, 2);
+            if (typeof updateLoadingLabel === 'function') {
+                updateLoadingLabel('正在連線到裝置...');
+            }
+            console.log(`[wireless] Running connect command: connect ${address}:${resolvedConnectPort}`);
+
+            const connectResult = await runADBcommand(`connect ${address}:${resolvedConnectPort}`, 2);
 
             if (connectResult && (connectResult.includes('connected to') || connectResult.includes('already connected'))) {
                 console.log('[wireless] Connection successful');
 
-                // Wait for device to be properly recognized
-                updatePersistentStatus(statusElement, '驗證裝置連線...');
+                if (typeof updateLoadingLabel === 'function') {
+                    updateLoadingLabel('驗證裝置連線...');
+                }
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
                 // Verify device connection
                 try {
                     const devicesResult = await runADBcommand('devices', 1, true);
-                    if (!devicesResult.includes(`${address}:${connectPort}`)) {
+                    if (!devicesResult.includes(`${address}:${resolvedConnectPort}`)) {
                         console.log('[wireless] Device verification failed, retrying connection...');
-                        await runADBcommand(`connect ${address}:${connectPort}`, 1, true);
+                        await runADBcommand(`connect ${address}:${resolvedConnectPort}`, 1, true);
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 } catch (verifyError) {
                     console.log('[wireless] Device verification error:', verifyError);
                 }
 
-                updatePersistentStatus(statusElement, '無線連線成功！');
-
-                // 重置錯誤計數，連線成功
+                // Reset state on success
                 wirelessConnectionState.protocolFaultCount = 0;
                 wirelessConnectionState.connectionAttempts = 0;
                 wirelessConnectionState.isConnecting = false;
-                
-                if (dialogWirelessConnect) {
-                    restoreDialogCloseAttributes(dialogWirelessConnect);
-                    dialogWirelessConnect.open = false;
-                }
-                stopWirelessScanning();
-
-                setTimeout(() => removePersistentStatus(statusElement), 2000);
 
                 if (typeof window.handleWirelessConnection === 'function') {
-                    await window.handleWirelessConnection(`${address}:${connectPort}`);
+                    await window.handleWirelessConnection(`${address}:${resolvedConnectPort}`);
                 } else if (typeof getDevice === 'function') {
                     await getDevice();
                 }
@@ -472,39 +545,27 @@ async function attemptWirelessConnection(address, pairingPort, connectPort, stat
         const errorMsg = error.message || error.toString();
         console.log('[wireless] Connection failed:', errorMsg);
 
+        // Show error in loading label if visible, otherwise use toast
+        let errorMessage = '無線連線失敗，請手動輸入 IP 與配對碼';
         if (errorMsg.includes('protocol fault') || errorMsg.includes('No error')) {
-            updatePersistentStatus(statusElement, 'ADB 協定錯誤，正在清理連線...');
-
-            // Show toast notification
-            if (typeof showSnackAlert === 'function') {
-                showSnackAlert('偵測到 ADB 協定錯誤，正在重置連線');
-            }
-
-            // Complete ADB reset procedure
+            errorMessage = 'ADB 協定錯誤，正在重置連線...';
             const resetSuccess = await completeAdbReset();
-            if (resetSuccess) {
-                updatePersistentStatus(statusElement, 'ADB 已重置，請重新嘗試連線');
-                // Show success toast
-                if (typeof showSnackAlert === 'function') {
-                    showSnackAlert('ADB 伺服器已重置完成');
-                }
-                // Restart device tracking if available
-                if (typeof window.startDeviceTracking === 'function') {
-                    setTimeout(() => window.startDeviceTracking(), 1000);
-                }
-            } else {
-                updatePersistentStatus(statusElement, 'ADB 重置失敗，請重啟應用程式');
-                if (typeof showSnackAlert === 'function') {
-                    showSnackAlert('ADB 重置失敗，請手動重啟應用程式');
-                }
-            }
+            errorMessage = resetSuccess ? 'ADB 已重置，請重新嘗試連線' : 'ADB 重置失敗，請重啟應用程式';
         } else if (errorMsg.includes('failed to authenticate')) {
-            updatePersistentStatus(statusElement, '配對碼錯誤，請檢查配對碼');
-        } else {
-            updatePersistentStatus(statusElement, '無線連線失敗，請手動輸入 IP 與配對碼');
+            errorMessage = '配對碼錯誤，請檢查配對碼';
+        } else if (errorMsg.includes('Unable to discover connect port')) {
+            errorMessage = '無法找到連線端口，請重新開啟裝置的無線偵錯後重試';
         }
 
-        setTimeout(() => removePersistentStatus(statusElement), 4000);
+        // Clean up UI state
+        removePersistentStatus(statusElement);
+        toggleConnectionIcon(false, false);
+        if (typeof clearAppList === 'function') {
+            clearAppList();
+        }
+        if (typeof showSnackAlert === 'function') {
+            showSnackAlert(errorMessage);
+        }
     }
 }
 
