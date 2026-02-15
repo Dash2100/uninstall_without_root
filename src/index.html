@@ -239,32 +239,6 @@
         <mdui-navigation-bar-item icon="info" value="about" onclick="switchPage('about')">關於</mdui-navigation-bar-item>
     </mdui-navigation-bar>
 
-    <!-- debug terminal area -->
-    <div id="debug-terminal-area"
-        class="mdui-theme-dark fixed right-0 top-0 bottom-0 w-2/5 bg-black flex flex-col border-l border-gray-700"
-        style="display: none; z-index: 5;">
-        <mdui-top-app-bar style="position: relative;" class="mdui-theme-dark">
-            <mdui-top-app-bar-title class="ml-3">ADB Terminal</mdui-top-app-bar-title>
-            <div style="flex-grow: 1" class=""></div>
-            <mdui-button-icon icon="cleaning_services" title="清除終端" onclick="clearTerminal()"
-                class="mx-3"></mdui-button-icon>
-        </mdui-top-app-bar>
-
-        <div id="debug-terminal-output"
-            class="flex-grow p-4 text-white font-mono text-sm whitespace-pre-wrap overflow-auto break-words w-full select-text">
-        </div>
-
-        <mdui-divider style="background-color: #49454F;"></mdui-divider>
-
-        <!-- 命令輸入區 -->
-        <div class="w-full p-2 flex">
-            <input id="debug-terminal-input" class="flex-grow h-10 terminal-input text-white" variant="outlined"
-                placeholder="Type ADB command..." />
-            <mdui-button-icon id="debug-terminal-submit" class="ml-2" variant="tonal"
-                icon="keyboard_return"></mdui-button-icon>
-        </div>
-    </div>
-
     <!-- ========== 被動元件 ========== -->
 
     <!-- delete app dialog -->
@@ -367,10 +341,10 @@
         data-package-name="{{app.packageName}}">
         <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
         <div class="flex flex-col justify-center flex-1 min-w-0">
-            <p class="text-lg truncate">{{app.packageName}}</p>
+            <p class="text-lg truncate">{{app.label}}</p>
             <div class="flex items-center gap-1">
                 <span class="text-xs px-1.5 py-0.5 rounded-full {{app.statusClass}}">{{app.status}}</span>
-                <p class="text-sm text-gray-500">{{app.type}}</p>
+                <p class="text-sm text-gray-500 truncate">{{app.subtitle}}</p>
             </div>
         </div>
     </mdui-card>
@@ -389,14 +363,19 @@
     <!-- appinfo dialog -->
     <mdui-dialog close-on-overlay-click class="dialog-appinfo">
         <mdui-top-app-bar slot="header">
-            <mdui-top-app-bar-title class="ml-4">應用程式資訊</mdui-top-app-bar-title>
+            <mdui-top-app-bar-title class="ml-4">{{app.label}}</mdui-top-app-bar-title>
         </mdui-top-app-bar>
         <span slot="description">
             <div class="flex flex-col gap-2">
-                <p>APP包名: {{app.packageName}}</p>
-                <p>APP版本: {{app.version}}</p>
-                <p>最後更新: {{app.latestUpdate}}</p>
-                <p>啟用狀態: {{app.isEnable}}</p>
+                <div class="app-info-row"><p><span class="text-gray-400">包名:</span> <span class="app-info-value">{{app.packageName}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">版本:</span> <span class="app-info-value">{{app.version}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">類型:</span> <span class="app-info-value">{{app.type}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">狀態:</span> <span class="app-info-value">{{app.isEnable}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">UID:</span> <span class="app-info-value">{{app.uid}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">安裝時間:</span> <span class="app-info-value">{{app.installTime}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">更新時間:</span> <span class="app-info-value">{{app.updateTime}}</span></p></div>
+                <div class="app-info-row"><p><span class="text-gray-400">APK 路徑:</span> <span class="app-info-value text-xs break-all">{{app.apkPath}}</span></p></div>
+                <div class="app-info-row app-info-permissions"><p><span class="text-gray-400">權限:</span></p><pre class="app-info-value text-xs text-gray-300 whitespace-pre-wrap break-all max-h-32 overflow-auto mt-1">{{app.permissions}}</pre></div>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">

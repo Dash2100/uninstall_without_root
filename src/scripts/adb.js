@@ -1,17 +1,13 @@
 // Execute an ADB command with improved error handling
-async function runADBcommand(command, retries = 1, suppressOutput = false) {
+async function runADBcommand(command, retries = 1) {
     console.log('[adb] ADB command:', command);
-    if (!suppressOutput) {
-        appendToTerminal(`> ${command}`, 'command');
-    }
-    
+    appendToTerminal(`> ${command}`, 'command');
+
     let lastError;
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await window.executeAdbCommand(command);
-            if (!suppressOutput) {
-                appendToTerminal(response || '(No output)', 'response');
-            }
+            appendToTerminal(response || '(No output)', 'response');
             return response;
         } catch (error) {
             lastError = error;
@@ -25,9 +21,7 @@ async function runADBcommand(command, retries = 1, suppressOutput = false) {
                 errorString.includes('not found') ||
                 messageString.includes('device offline') || messageString.includes('device not found') ||
                 messageString.includes('not found')) {
-                if (!suppressOutput) {
-                    appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
-                }
+                appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
 
                 // Set UI state to disconnected
                 if (typeof handleDeviceDisconnected === 'function') {
@@ -43,9 +37,7 @@ async function runADBcommand(command, retries = 1, suppressOutput = false) {
                 continue;
             }
 
-            if (!suppressOutput) {
-                appendToTerminal(error.toString(), 'error');
-            }
+            appendToTerminal(error.toString(), 'error');
             throw error;
         }
     }
@@ -148,7 +140,21 @@ async function extractAPK(packageName, extractPath) {
     const apkInfo =
         (appsList.apps.system && appsList.apps.system[packageName]) ||
         (appsList.apps.user && appsList.apps.user[packageName]);
-    const apkPath = apkInfo && apkInfo.app_path;
+    let apkPath = apkInfo && apkInfo.app_path;
+
+    // If apkPath is empty (helper mode), query the helper for it
+    if (!apkPath && useHelperMethod) {
+        try {
+            const shellCmd = `shell "CLASSPATH=/data/local/tmp/helper.dex app_process /data/local/tmp/ com.dash.helper.AdbHelper ${packageName}"`;
+            const cmd = selectedDevice ? `-s ${selectedDevice} ${shellCmd}` : shellCmd;
+            const res = await runADBcommand(cmd, 0);
+            const detail = JSON.parse(res.trim());
+            apkPath = detail.apkPath || '';
+        } catch (err) {
+            console.error('[Helper] Failed to get apkPath for', packageName, err);
+        }
+    }
+
     if (!apkPath) {
         appendToTerminal(`APK path for ${packageName} not found.`, 'error');
         throw new Error(`APK 路徑未找到`);

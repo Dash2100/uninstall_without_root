@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- mdui -->
+    <script src="./scripts/lib/mdui.global.js" defer></script>
+    <link rel="stylesheet" href="./style/mdui.css">
+
+    <!-- icon -->
+    <link rel="stylesheet" href="./style/font.css">
+
+    <!-- tailwindcss -->
+    <link rel="stylesheet" href="./style/tailwind.min.css">
+
+    <title>ADB Terminal</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #debug-terminal-output {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background-color: #0a0a0a;
+            scrollbar-width: thin;
+        }
+
+        #debug-terminal-output::-webkit-scrollbar {
+            width: 6px;
+            transition: width 0.3s ease;
+        }
+
+        #debug-terminal-output::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        #debug-terminal-output::-webkit-scrollbar-thumb {
+            background: rgba(100, 100, 100, 0.6);
+            border-radius: 4px;
+        }
+
+        #debug-terminal-output:hover::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-input {
+            background-color: #1A1A1A;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .terminal-input:focus {
+            outline: none;
+        }
+    </style>
+</head>
+
+<body class="mdui-theme-dark w-screen h-screen select-none">
+    <div class="flex flex-col h-screen">
+        <mdui-top-app-bar style="position: relative;">
+            <mdui-top-app-bar-title class="ml-3">ADB Terminal</mdui-top-app-bar-title>
+            <div style="flex-grow: 1"></div>
+            <mdui-button-icon icon="cleaning_services" title="Clear" id="btn-clear"
+                class="mx-3"></mdui-button-icon>
+        </mdui-top-app-bar>
+
+        <div id="debug-terminal-output"
+            class="flex-grow p-4 text-white font-mono text-sm whitespace-pre-wrap overflow-auto break-words w-full select-text">
+        </div>
+
+        <mdui-divider style="background-color: #49454F;"></mdui-divider>
+
+        <div class="w-full p-2 flex">
+            <input id="debug-terminal-input" class="flex-grow h-10 terminal-input text-white"
+                placeholder="Type ADB command..." autofocus />
+            <mdui-button-icon id="btn-submit" class="ml-2" variant="tonal"
+                icon="keyboard_return"></mdui-button-icon>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        const output = document.getElementById('debug-terminal-output');
+        const input = document.getElementById('debug-terminal-input');
+        const btnSubmit = document.getElementById('btn-submit');
+        const btnClear = document.getElementById('btn-clear');
+
+        // Class map matching original terminal styling
+        const classMap = {
+            command: ['text-green-500', 'font-bold'],
+            error: ['text-red-500'],
+            system: ['text-blue-300', 'italic'],
+            response: ['text-gray-300'],
+            success: ['text-green-400']
+        };
+
+        function scrollToBottom() {
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function appendLine(text, type) {
+            const line = document.createElement('div');
+            line.textContent = text;
+            line.classList.add(...(classMap[type] || classMap.response));
+            output.appendChild(line);
+            scrollToBottom();
+        }
+
+        function clearOutput() {
+            output.textContent = '';
+        }
+
+        function executeCommand(cmd) {
+            if (!cmd) return;
+            input.value = '';
+            appendLine(`> ${cmd}`, 'command');
+
+            let command = cmd.startsWith('adb ') ? cmd.slice(4) : cmd;
+            if (['clear', 'cls'].includes(command)) {
+                clearOutput();
+                return;
+            }
+            if (command === 'shell') {
+                appendLine('ADB shell not supported', 'error');
+                return;
+            }
+
+            ipcRenderer.invoke('terminal-execute-adb', command)
+                .then(res => appendLine(res || '(No output)', 'response'))
+                .catch(err => {
+                    const code = err.toString().split('\n')[1]?.trim() || err.toString();
+                    appendLine(code, 'error');
+                });
+        }
+
+        // Receive forwarded output from main app
+        ipcRenderer.on('terminal-append', (_e, text, type) => {
+            appendLine(text, type);
+        });
+
+        // Receive clear from main app
+        ipcRenderer.on('terminal-clear', () => {
+            clearOutput();
+        });
+
+        // Input events
+        btnSubmit.addEventListener('click', () => executeCommand(input.value.trim()));
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                executeCommand(input.value.trim());
+            }
+        });
+        btnClear.addEventListener('click', clearOutput);
+    </script>
+</body>
+
+</html>

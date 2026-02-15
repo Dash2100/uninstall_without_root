@@ -36,6 +36,7 @@ let appsList = { apps: { user: {}, system: {} } };
 let disabledApps = [];
 let connectedDevices = [];
 let selectedDevice = null;
+let useHelperMethod = false;
 
 
 // UI Helpers
@@ -79,6 +80,7 @@ function handleDeviceDisconnected() {
     isConnected = false;
     isConnecting = false;
     selectedDevice = null;
+    useHelperMethod = false;
     toggleConnectionIcon(false, false);
     clearAppList();
 
@@ -143,13 +145,7 @@ async function getDevice() {
 
         // automatically connect if only one is available
         if (devices.length === 1) {
-            selectedDevice = devices[0].id;
-            isConnected = true;
-            disconnectionNotified = false; // Reset disconnection notification flag
-            noDeviceNotified = false; // Reset no device notification flag
-            toggleConnectionIcon(true, false);
-            showSnackAlert(`已連接到設備: ${selectedDevice}`);
-            await refreshAppList();
+            await finalizeConnection(devices[0].id);
             return;
         }
 
@@ -199,7 +195,7 @@ async function showDeviceSelectionDialog() {
     dialog.open = true;
 }
 
-function confirmDeviceSelection() {
+async function confirmDeviceSelection() {
     const dialog = els.dialogSelectDevice;
     const menu = dialog.querySelector('mdui-menu');
     const selectedValue = menu.value;
@@ -209,15 +205,8 @@ function confirmDeviceSelection() {
         return;
     }
 
-    selectedDevice = selectedValue;
-    isConnected = true;
-    disconnectionNotified = false; // Reset disconnection notification flag
-    noDeviceNotified = false; // Reset no device notification flag
-    toggleConnectionIcon(true, false);
-    showSnackAlert(`已連接到設備: ${selectedDevice}`);
     dialog.open = false;
-
-    refreshAppList();
+    await finalizeConnection(selectedValue);
 }
 
 async function runADBcommandWithDevice(command) {
@@ -227,11 +216,77 @@ async function runADBcommandWithDevice(command) {
     return await runADBcommand(fullCommand);
 }
 
+// Push helper DEX to device and validate the result
+async function pushHelperDex() {
+    try {
+        const dexPath = await window.getHelperDexPath();
+
+        // Verify the DEX file exists locally before pushing
+        const exists = await window.checkFileExists(dexPath);
+        
+        if (!exists) {
+            console.error('[Helper] DEX file not found at:', dexPath);
+            return false;
+        }
+
+        const pushCmd = selectedDevice
+            ? `-s ${selectedDevice} push "${dexPath}" /data/local/tmp/helper.dex`
+            : `push "${dexPath}" /data/local/tmp/helper.dex`;
+
+        const result = await runADBcommand(pushCmd, 0);
+
+        console.log('[Helper] Push DEX result:', result);
+
+        if (result && result.includes('1 file pushed')) {
+            console.log('[Helper] DEX pushed successfully');
+            return true;
+        }
+        console.warn('[Helper] DEX push result unexpected:', result);
+        return false;
+    } catch (err) {
+        console.error('[Helper] Failed to push DEX:', err);
+        return false;
+    }
+}
+
+// Finalize device connection: push helper DEX, set state, refresh app list
+async function finalizeConnection(deviceId) {
+    selectedDevice = deviceId;
+    isConnected = true;
+    disconnectionNotified = false;
+    noDeviceNotified = false;
+
+    // Keep loading icon while pushing helper DEX
+    toggleConnectionIcon(false, true);
+    const pushSuccess = await pushHelperDex();
+    useHelperMethod = pushSuccess;
+
+    toggleConnectionIcon(true, false);
+    showSnackAlert(`已連接到設備: ${selectedDevice}`);
+    if (!pushSuccess) {
+        showSnackAlert('Helper 推送失敗，已切換至相容模式');
+    }
+    await refreshAppList();
+}
+
 async function refreshAppList() {
     showLoading();
     try {
-        disabledApps = await fetchDisabledApps();
-        appsList = await fetchApps();
+        if (useHelperMethod) {
+            appsList = await fetchAppsWithHelper();
+            // Build disabledApps from helper data
+            disabledApps = [];
+            for (const type of ['user', 'system']) {
+                for (const app of Object.values(appsList.apps[type])) {
+                    if (!app.enabled) {
+                        disabledApps.push(app.package_name);
+                    }
+                }
+            }
+        } else {
+            disabledApps = await fetchDisabledApps();
+            appsList = await fetchAppsLegacy();
+        }
         const term = els.searchInput.value.trim().toLowerCase();
         const toShow = term ? filterApps(appsList, term) : appsList;
         renderAppList(toShow);
@@ -242,6 +297,29 @@ async function refreshAppList() {
     }
 }
 
+// Fetch apps using helper DEX (returns rich data with labels)
+async function fetchAppsWithHelper() {
+    const shellCmd = 'shell "CLASSPATH=/data/local/tmp/helper.dex app_process /data/local/tmp/ com.dash.helper.AdbHelper LIST_ALL"';
+    const command = selectedDevice
+        ? `-s ${selectedDevice} ${shellCmd}`
+        : shellCmd;
+    const res = await runADBcommand(command, 0);
+    const list = JSON.parse(res.trim());
+    const apps = { user: {}, system: {} };
+    for (const item of list) {
+        const target = item.isSystem ? apps.system : apps.user;
+        target[item.packageName] = {
+            package_name: item.packageName,
+            label: item.label || item.packageName,
+            versionName: item.versionName || '',
+            enabled: item.enabled,
+            app_path: ''
+        };
+    }
+    return { apps };
+}
+
+// Legacy fetch using native ADB commands (fallback)
 async function fetchDisabledApps() {
     try {
         const command = selectedDevice
@@ -256,7 +334,7 @@ async function fetchDisabledApps() {
     }
 }
 
-async function fetchApps() {
+async function fetchAppsLegacy() {
     const command = selectedDevice
         ? `-s ${selectedDevice} shell pm list packages -f`
         : 'shell pm list packages -f';
@@ -269,7 +347,7 @@ async function fetchApps() {
         const pkg = match[2] || line.replace('package:', '').trim();
         const target = line.includes('/data/app/') || line.includes('/data/user/')
             ? apps.user : apps.system;
-        target[pkg] = { package_name: pkg, app_path: apkPath };
+        target[pkg] = { package_name: pkg, label: pkg, app_path: apkPath, enabled: true };
     });
     return { apps };
 }
@@ -282,7 +360,9 @@ function filterApps({ apps }, term) {
 
     for (const type of Object.keys(apps)) {
         for (const app of Object.values(apps[type])) {
-            if (app.package_name.toLowerCase().includes(lowerTerm)) {
+            const matchName = app.package_name.toLowerCase().includes(lowerTerm);
+            const matchLabel = app.label && app.label.toLowerCase().includes(lowerTerm);
+            if (matchName || matchLabel) {
                 filtered.apps[type][app.package_name] = app;
             }
         }
@@ -392,12 +472,18 @@ function createAppCard(app, type) {
     const tmpl = els.appCardTemplate.innerHTML;
     const enabled = !disabledApps.includes(app.package_name);
     const status = enabled ? '啟用中' : '停用中';
-    const cls = enabled ? 'bg-green-900 text-white' : 'bg-red-900 text-white';
+    const statusClass = enabled ? 'bg-green-900 text-white' : 'bg-red-900 text-white';
+    const label = app.label || app.package_name;
+    // In helper mode: show type and packageName; in fallback mode: only show type
+    const subtitle = useHelperMethod
+        ? `${type} ${app.package_name}`
+        : type;
     const html = tmpl
         .replace(/{{app.packageName}}/g, app.package_name)
-        .replace(/{{app.type}}/g, type)
+        .replace(/{{app.label}}/g, label)
         .replace(/{{app.status}}/g, status)
-        .replace(/{{app.statusClass}}/g, cls);
+        .replace(/{{app.statusClass}}/g, statusClass)
+        .replace(/{{app.subtitle}}/g, subtitle);
     const wrapper = document.createElement('template');
     wrapper.innerHTML = html.trim();
     const card = wrapper.content.firstChild;
@@ -419,23 +505,70 @@ async function viewAppInfo(pkg) {
     }
 
     try {
-        const command = selectedDevice
-            ? `-s ${selectedDevice} shell dumpsys package ${pkg}`
-            : `shell dumpsys package ${pkg}`;
-        const info = await runADBcommand(command);
-        const { versionName, versionCode, lastUpdateTime } = parseAppInfo(info);
-        const enabled = !disabledApps.includes(pkg);
-        showInfoDialog(pkg, versionName, versionCode, lastUpdateTime, enabled);
+        if (useHelperMethod) {
+            const shellCmd = `shell "CLASSPATH=/data/local/tmp/helper.dex app_process /data/local/tmp/ com.dash.helper.AdbHelper ${pkg}"`;
+            const command = selectedDevice
+                ? `-s ${selectedDevice} ${shellCmd}`
+                : shellCmd;
+            const res = await runADBcommand(command, 0);
+            const info = JSON.parse(res.trim());
+            const enabled = info.enabled;
+            showInfoDialog({
+                packageName: info.packageName,
+                label: info.label || info.packageName,
+                version: `${info.versionName} (${info.versionCode})`,
+                uid: info.uid,
+                isSystem: info.isSystem,
+                enabled: enabled,
+                installTime: formatTimestamp(info.installTime),
+                updateTime: formatTimestamp(info.updateTime),
+                apkPath: info.apkPath || '',
+                permissions: info.permissions || []
+            });
+        } else {
+            const command = selectedDevice
+                ? `-s ${selectedDevice} shell dumpsys package ${pkg}`
+                : `shell dumpsys package ${pkg}`;
+            const info = await runADBcommand(command);
+            const parsed = parseAppInfoLegacy(info);
+            const enabled = !disabledApps.includes(pkg);
+            showInfoDialog({
+                packageName: pkg,
+                label: pkg,
+                version: `${parsed.versionName} (${parsed.versionCode})`,
+                uid: '',
+                isSystem: false,
+                enabled: enabled,
+                installTime: '',
+                updateTime: parsed.lastUpdateTime,
+                apkPath: '',
+                permissions: []
+            });
+        }
     } catch (err) {
         console.error('Get package info error:', err);
-        // Only show dialog if device is still connected
         if (isConnected) {
-            showInfoDialog(pkg, '未知', '未知', '未知', false);
+            showInfoDialog({
+                packageName: pkg, label: pkg, version: '未知',
+                uid: '', isSystem: false, enabled: false,
+                installTime: '', updateTime: '未知', apkPath: '', permissions: []
+            });
         }
     }
 }
 
-function parseAppInfo(info) {
+// Format unix timestamp to readable date string
+function formatTimestamp(ts) {
+    if (!ts) return '';
+    try {
+        const d = new Date(ts);
+        return d.toLocaleString();
+    } catch {
+        return '';
+    }
+}
+
+function parseAppInfoLegacy(info) {
     return {
         versionName: (/versionName=([^\s]+)/.exec(info) || [])[1] || '未知',
         versionCode: (/versionCode=([^\s]+)/.exec(info) || [])[1] || '未知',
@@ -443,7 +576,7 @@ function parseAppInfo(info) {
     };
 }
 
-function showInfoDialog(pkg, vName, vCode, updated, enabled) {
+function showInfoDialog(appInfo) {
     // Check if device is still connected before showing dialog
     if (!isConnected) {
         console.log('Device disconnected, not showing app info dialog');
@@ -451,21 +584,36 @@ function showInfoDialog(pkg, vName, vCode, updated, enabled) {
     }
 
     const html = els.appInfoTemplate.innerHTML
-        .replace(/{{app.packageName}}/g, pkg)
-        .replace(/{{app.version}}/g, `${vName} (${vCode})`)
-        .replace(/{{app.latestUpdate}}/g, updated)
-        .replace(/{{app.isEnable}}/g, enabled ? '啟用中' : '已停用');
+        .replace(/{{app.packageName}}/g, appInfo.packageName)
+        .replace(/{{app.label}}/g, appInfo.label)
+        .replace(/{{app.version}}/g, appInfo.version)
+        .replace(/{{app.uid}}/g, appInfo.uid ? `UID: ${appInfo.uid}` : '')
+        .replace(/{{app.type}}/g, appInfo.isSystem ? '系統程式' : '使用者程式')
+        .replace(/{{app.isEnable}}/g, appInfo.enabled ? '啟用中' : '已停用')
+        .replace(/{{app.installTime}}/g, appInfo.installTime)
+        .replace(/{{app.updateTime}}/g, appInfo.updateTime)
+        .replace(/{{app.apkPath}}/g, appInfo.apkPath)
+        .replace(/{{app.permissions}}/g, appInfo.permissions.length
+            ? appInfo.permissions.join('\n')
+            : '');
     const div = document.createElement('div');
     div.innerHTML = html;
     const dialog = div.querySelector('.dialog-appinfo');
+
+    // Hide empty info rows
+    dialog.querySelectorAll('.app-info-row').forEach(row => {
+        const val = row.querySelector('.app-info-value');
+        if (val && !val.textContent.trim()) {
+            row.style.display = 'none';
+        }
+    });
+
     document.body.appendChild(dialog);
-    setupDialogButtons(dialog, pkg, enabled);
+    setupDialogButtons(dialog, appInfo.packageName, appInfo.enabled);
     setTimeout(() => {
-        // Double check connection status before opening dialog
         if (isConnected) {
             dialog.open = true;
         } else {
-            // Remove dialog if device disconnected while waiting
             document.body.removeChild(dialog);
         }
     }, 1);
@@ -581,16 +729,10 @@ function downloadAPK(pkg, dialog) {
 window.handleWirelessConnection = async function (deviceId) {
     console.log('[Wireless] Handling wireless connection success for device:', deviceId);
 
-    selectedDevice = deviceId;
-    isConnected = true;
-    disconnectionNotified = false;
-    noDeviceNotified = false;
-    toggleConnectionIcon(true, false);
-
     try {
-        await refreshAppList();
+        await finalizeConnection(deviceId);
     } catch (err) {
-        console.error('[Wireless] Error refreshing app list after wireless connection:', err);
+        console.error('[Wireless] Error during wireless connection finalization:', err);
     }
 };
 
@@ -602,6 +744,12 @@ window.handleDeviceChange = function (deviceList) {
     // Ignore initial device status during app startup
     if (!appInitialized) {
         console.log('[USB] Ignoring device change during app initialization');
+        return;
+    }
+
+    // Skip if already connecting
+    if (isConnecting) {
+        console.log('[USB] Ignoring device change while connecting');
         return;
     }
 
@@ -617,18 +765,19 @@ window.handleDeviceChange = function (deviceList) {
     const hasValidDevice = deviceList.includes('device') || deviceList.includes('recovery');
     const wasConnected = isConnected;
 
+    // If already connected and current device is still in the list, skip reconnection
+    if (isConnected && selectedDevice && hasValidDevice && deviceList.includes(selectedDevice)) {
+        console.log('[USB] Current device still connected, skipping reconnection');
+        return;
+    }
+
     setTimeout(async () => {
         if (hasValidDevice) {
-            console.log('[USB] Valid device detected, refreshing connection and app list');
-            // Re-check device connection
+            console.log('[USB] Valid device detected, refreshing connection');
             await getDevice();
-            if (isConnected) {
-                await refreshAppList();
-            }
         } else {
             console.log('[USB] No valid device found, updating UI to show disconnected state');
             if (wasConnected) {
-                // Device was disconnected
                 handleDeviceDisconnected();
             }
         }
@@ -701,6 +850,7 @@ async function confirmDisconnect() {
 
     isConnected = false;
     selectedDevice = null;
+    useHelperMethod = false;
     toggleConnectionIcon(false, false);
 
     clearAppList();
@@ -714,6 +864,7 @@ async function confirmDisconnectAndWireless() {
 
     isConnected = false;
     selectedDevice = null;
+    useHelperMethod = false;
     toggleConnectionIcon(false, false);
 
     clearAppList();

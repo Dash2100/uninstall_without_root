@@ -156,6 +156,12 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
         stopAdbTracking();
+        // Close terminal window and quit when main window is closed
+        if (terminalWindow && !terminalWindow.isDestroyed()) {
+            terminalWindow.close();
+            terminalWindow = null;
+        }
+        app.quit();
     });
 
     console.log('[App] main window created');
@@ -171,8 +177,8 @@ ipcMain.handle('execute-adb-command', async (_e, cmd) => {
                 console.log('[ADB] command error:', err);
                 return rej(err.message);
             }
-            // console.log('[ADB] command output:', out);
-            return res(out);
+            // Some adb commands (push, pull) output results to stderr
+            return res(out || errOut);
         });
     });
 });
@@ -321,6 +327,14 @@ ipcMain.handle('get-adb-info', async () => {
     };
 });
 
+// Get helper DEX file path for pushing to device
+ipcMain.handle('get-helper-dex-path', () => {
+    const base = app.isPackaged ? process.resourcesPath : __dirname;
+    const dexPath = path.join(base, 'adb', 'helper.dex');
+    console.log('[ADB] Helper DEX path:', dexPath);
+    return dexPath;
+});
+
 // Restart ADB tracking when path changes
 ipcMain.handle('restart-adb-tracking', async () => {
     console.log('[ADB] Restarting ADB tracking due to path change');
@@ -332,6 +346,75 @@ ipcMain.handle('restart-adb-tracking', async () => {
     }, 1000);
     
     return { success: true };
+});
+
+// Terminal popup window management
+let terminalWindow = null;
+
+ipcMain.handle('open-terminal-window', () => {
+    if (terminalWindow && !terminalWindow.isDestroyed()) {
+        terminalWindow.focus();
+        return;
+    }
+
+    // Match main window height and position next to it
+    const mainBounds = mainWindow ? mainWindow.getBounds() : { x: 100, y: 100, height: 800 };
+
+    terminalWindow = new BrowserWindow({
+        width: 450, height: mainBounds.height, resizable: true,
+        x: mainBounds.x + 750 + 10,
+        y: mainBounds.y,
+        autoHideMenuBar: true,
+        backgroundColor: '#0a0a0a',
+        title: 'ADB Terminal',
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    terminalWindow.loadFile(path.join(__dirname, 'src', 'terminal.html'));
+
+    terminalWindow.on('closed', () => {
+        terminalWindow = null;
+        // Notify main window so it can uncheck debug mode toggle
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('terminal-window-closed');
+        }
+    });
+});
+
+ipcMain.handle('close-terminal-window', () => {
+    if (terminalWindow && !terminalWindow.isDestroyed()) {
+        terminalWindow.close();
+        terminalWindow = null;
+    }
+});
+
+// Forward terminal append from main renderer to terminal window
+ipcMain.on('terminal-append', (_e, text, type) => {
+    if (terminalWindow && !terminalWindow.isDestroyed()) {
+        terminalWindow.webContents.send('terminal-append', text, type);
+    }
+});
+
+// Forward terminal clear to terminal window
+ipcMain.on('terminal-clear', () => {
+    if (terminalWindow && !terminalWindow.isDestroyed()) {
+        terminalWindow.webContents.send('terminal-clear');
+    }
+});
+
+// Execute ADB command from terminal window
+ipcMain.handle('terminal-execute-adb', async (_e, cmd) => {
+    console.log('[Terminal] execute command:', cmd);
+    const adb = await getAdbPath();
+    return new Promise((res, rej) => {
+        exec(`"${adb}" ${cmd}`, (err, out, errOut) => {
+            if (err) return rej(err.message);
+            return res(out || errOut);
+        });
+    });
 });
 
 // USB Device Change Monitoring
@@ -396,6 +479,10 @@ function stopAdbTracking() {
 app.on('before-quit', async () => {
     console.log('[ADB] kill-server and stop tracking');
     stopAdbTracking();
+    if (terminalWindow && !terminalWindow.isDestroyed()) {
+        terminalWindow.close();
+        terminalWindow = null;
+    }
     const adbPath = await getAdbPath();
     exec(`"${adbPath}" kill-server`, () => { });
 });
