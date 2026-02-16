@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="renderer" content="webkit" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;" />
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;" />
 
     <!-- Node.js integration script -->
     <script src="./scripts/lib/integration.js"></script>
@@ -298,6 +299,27 @@
         <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">同意</mdui-button>
     </mdui-dialog>
 
+    <!-- system app warning dialog -->
+    <mdui-dialog close-on-overlay-click class="dialog-system-warning">
+        <span slot="headline" class="font-bold">系統元件警告</span>
+        <span slot="description">
+            <div class="flex flex-col gap-4">
+                <p>
+                    您準備對 <span id="sys-warning-app-name" class="font-bold"></span> 進行操作。
+                </p>
+                <div class="bg-orange-50 p-3 rounded-lg border border-yellow-500">
+                    <p class="text-orange-800 text-sm opacity-90">
+                        移除或停用系統元件可能導致裝置功能異常、無限重啟或資料遺失。
+                        若您不確定此元件用途，請點擊「取消」。
+                    </p>
+                </div>
+            </div>
+        </span>
+        <mdui-button slot="action" variant="text"
+            onclick="document.querySelector('.dialog-system-warning').open = false">取消</mdui-button>
+        <mdui-button id="confirm-sys-warning-btn" slot="action" variant="tonal" color="error">仍要繼續</mdui-button>
+    </mdui-dialog>
+
     <mdui-dialog class="dialog-select-device">
         <span slot="headline" class="font-bold">選擇裝置</span>
         <span slot="description">
@@ -378,13 +400,29 @@
         </mdui-top-app-bar>
         <span slot="description">
             <div class="flex flex-col gap-2">
-                <div class="app-info-row"><p><span class="text-gray-400">包名:</span> <span class="app-info-value">{{app.packageName}}</span></p></div>
-                <div class="app-info-row flex items-center gap-2"><span class="text-gray-400">狀態:</span> <span class="text-xs px-2 py-0.5 rounded-full {{app.statusClass}}">{{app.isEnable}}</span></div>
-                <div class="app-info-row"><p><span class="text-gray-400">版本:</span> <span class="app-info-value">{{app.version}}</span></p></div>
-                <div class="app-info-row"><p><span class="text-gray-400">類型:</span> <span class="app-info-value">{{app.type}}</span></p></div>
-                <div class="app-info-row"><p><span class="text-gray-400">UID:</span> <span class="app-info-value">{{app.uid}}</span></p></div>
-                <div class="app-info-row"><p><span class="text-gray-400">安裝時間:</span> <span class="app-info-value">{{app.installTime}}</span></p></div>
-                <div class="app-info-row"><p><span class="text-gray-400">更新時間:</span> <span class="app-info-value">{{app.updateTime}}</span></p></div>
+                <div class="app-info-row">
+                    <p><span class="text-gray-400">包名:</span> <span class="app-info-value">{{app.packageName}}</span>
+                    </p>
+                </div>
+                <div class="app-info-row flex items-center gap-2"><span class="text-gray-400">狀態:</span> <span
+                        class="text-xs px-2 py-0.5 rounded-full {{app.statusClass}}">{{app.isEnable}}</span></div>
+                <div class="app-info-row">
+                    <p><span class="text-gray-400">版本:</span> <span class="app-info-value">{{app.version}}</span></p>
+                </div>
+                <div class="app-info-row">
+                    <p><span class="text-gray-400">類型:</span> <span class="app-info-value">{{app.type}}</span></p>
+                </div>
+                <div class="app-info-row">
+                    <p><span class="text-gray-400">UID:</span> <span class="app-info-value">{{app.uid}}</span></p>
+                </div>
+                <div class="app-info-row">
+                    <p><span class="text-gray-400">安裝時間:</span> <span class="app-info-value">{{app.installTime}}</span>
+                    </p>
+                </div>
+                <div class="app-info-row">
+                    <p><span class="text-gray-400">更新時間:</span> <span class="app-info-value">{{app.updateTime}}</span>
+                    </p>
+                </div>
             </div>
         </span>
         <div class="flex flex-col w-full gap-5 mt-6">

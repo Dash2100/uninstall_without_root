@@ -8,6 +8,7 @@ const els = {
     // dialog
     dialogWarning: document.querySelector('.dialog-warning'),
     dialogDeleteApp: document.querySelector('.dialog-delete-app'),
+    dialogSystemWarning: document.querySelector('.dialog-system-warning'),
     dialogSelectDevice: document.querySelector('.dialog-select-device'),
     dialogWirelessConnect: document.querySelector('.dialog-wireless-connect'),
     dialogDisconnectConfirm: document.querySelector('.dialog-disconnect-confirm'),
@@ -141,12 +142,49 @@ async function getDevice() {
         }
 
         const lines = output.trim().split(/\r?\n/).slice(1).filter(Boolean);
-        const devices = [];
+        let devices = [];
         for (const line of lines) {
             const [id, status] = line.trim().split('\t');
             if (status && status.trim() === 'device') {
                 devices.push({ id, status });
             }
+        }
+
+        // Deduplicate devices (same physical device via USB/Wireless/mDNS)
+        if (devices.length > 1) {
+            const serialMap = new Map();
+            
+            // Get serial for all devices concurrently
+            await Promise.all(devices.map(async (device) => {
+                try {
+                    // Use -s to target specific device instance
+                    const serialOutput = await runADBcommand(`-s ${device.id} shell getprop ro.serialno`);
+                    const serial = serialOutput ? serialOutput.trim() : null;
+                    
+                    const key = serial || device.id; 
+                    if (!serialMap.has(key)) serialMap.set(key, []);
+                    serialMap.get(key).push(device);
+                } catch (e) {
+                    // If error (e.g. unauthorized), treat as unique using its ID
+                    console.warn(`[USB] Failed to get serial for ${device.id}`, e);
+                    if (!serialMap.has(device.id)) serialMap.set(device.id, []);
+                    serialMap.get(device.id).push(device);
+                }
+            }));
+            
+            const uniqueDevices = [];
+            for (const [key, candidates] of serialMap.entries()) {
+                 if (candidates.length === 1) {
+                     uniqueDevices.push(candidates[0]);
+                 } else {
+                     // Prefer IP:Port format (cleaner) over mDNS names
+                     // Heuristic: shortest ID or one starting with digit is likely IP
+                     const best = candidates.find(d => /^\d/.test(d.id) && !d.id.includes('_adb-tls-connect')) || candidates[0];
+                     console.log(`[USB] Deduplicated ${key}: selected ${best.id} from`, candidates.map(c => c.id));
+                     uniqueDevices.push(best);
+                 }
+            }
+            devices = uniqueDevices;
         }
 
         console.log(`[USB] getDevice: found ${devices.length} device(s)`, devices.map(d => d.id));
@@ -391,7 +429,8 @@ async function fetchAppsWithHelper() {
             label: item.label || item.packageName,
             versionName: item.versionName || '',
             enabled: item.enabled,
-            app_path: ''
+            app_path: '',
+            isSystem: item.isSystem
         };
     }
     return { apps };
@@ -637,6 +676,28 @@ async function viewAppInfo(pkg) {
 
     try {
         if (useHelperMethod) {
+            // Check if we have partial info available immediately
+            const app = (appsList.apps.user && appsList.apps.user[pkg]) || 
+                        (appsList.apps.system && appsList.apps.system[pkg]);
+            
+            if (app) {
+                // Show what we have
+                showInfoDialog({
+                    packageName: app.package_name,
+                    label: app.label,
+                    version: app.versionName,
+                    uid: '',
+                    isSystem: app.isSystem,
+                    enabled: app.enabled,
+                    installTime: '',
+                    updateTime: '',
+                    apkPath: '',
+                    permissions: [],
+                    isPartial: true
+                });
+                return;
+            }
+
             const shellCmd = `shell "CLASSPATH=/data/local/tmp/helper.dex app_process /data/local/tmp/ com.dash.helper.AdbHelper ${pkg}"`;
             const command = selectedDevice
                 ? `-s ${selectedDevice} ${shellCmd}`
@@ -738,7 +799,7 @@ function showInfoDialog(appInfo) {
     });
 
     document.body.appendChild(dialog);
-    setupDialogButtons(dialog, appInfo.packageName, appInfo.enabled);
+    setupDialogButtons(dialog, appInfo);
     setTimeout(() => {
         if (isConnected) {
             dialog.open = true;
@@ -748,22 +809,44 @@ function showInfoDialog(appInfo) {
     }, 1);
 }
 
-function setupDialogButtons(dialog, pkg, enabled) {
+function setupDialogButtons(dialog, appInfo) {
     const btns = {
         enable: dialog.querySelector("mdui-button[icon='power_settings_new']"),
         disable: dialog.querySelector("mdui-button[icon='power_off']"),
         extract: dialog.querySelector("mdui-button[icon='download']"),
         delete: dialog.querySelector("mdui-button[icon='delete']")
     };
-    btns.enable.disabled = enabled;
-    btns.disable.disabled = !enabled;
-    btns.enable.addEventListener('click', () => toggleAppState(pkg, true, dialog));
-    btns.disable.addEventListener('click', () => toggleAppState(pkg, false, dialog));
-    btns.extract.addEventListener('click', () => downloadAPK(pkg, dialog));
-    btns.delete.addEventListener('click', () => promptDelete(dialog, pkg));
+    btns.enable.disabled = appInfo.enabled;
+    btns.disable.disabled = !appInfo.enabled;
+    
+    // Pass isSystem to toggleAppState and promptDelete
+    btns.enable.addEventListener('click', () => toggleAppState(appInfo.packageName, true, dialog, appInfo.isSystem));
+    btns.disable.addEventListener('click', () => toggleAppState(appInfo.packageName, false, dialog, appInfo.isSystem));
+    btns.extract.addEventListener('click', () => downloadAPK(appInfo.packageName, dialog));
+    btns.delete.addEventListener('click', () => promptDelete(dialog, appInfo.packageName, appInfo.isSystem));
 }
 
-async function toggleAppState(pkg, enable, dialog) {
+function showSystemWarning(pkg, callback) {
+    const dialog = els.dialogSystemWarning;
+    
+    // Move to end of body to ensure it shows on top of app detail dialog
+    document.body.appendChild(dialog);
+
+    const nameEl = document.getElementById('sys-warning-app-name');
+    const confirmBtn = document.getElementById('confirm-sys-warning-btn');
+    
+    nameEl.textContent = pkg;
+    
+    // Override onclick to prevent multiple listeners
+    confirmBtn.onclick = () => {
+        dialog.open = false;
+        callback();
+    };
+    
+    dialog.open = true;
+}
+
+async function toggleAppState(pkg, enable, dialog, isSystem = false) {
     // Check if device is connected before performing operations
     if (!isConnected) {
         showSnackAlert('設備未連接，無法執行操作');
@@ -771,34 +854,52 @@ async function toggleAppState(pkg, enable, dialog) {
         return;
     }
 
-    const action = enable ? enableAPP : disableAPP;
-    try {
-        await action(pkg);
-        showSnackAlert(`應用程式 ${pkg} ${enable ? '已啟用' : '已停用'}`);
-        if (enable) {
-            disabledApps.delete(pkg);
-        } else {
-            disabledApps.add(pkg);
+    const action = async () => {
+        const func = enable ? enableAPP : disableAPP;
+        try {
+            await func(pkg);
+            showSnackAlert(`應用程式 ${pkg} ${enable ? '已啟用' : '已停用'}`);
+            if (enable) {
+                disabledApps.delete(pkg);
+            } else {
+                disabledApps.add(pkg);
+            }
+            dialog.open = false;
+            await refreshAppList();
+        } catch (err) {
+            console.error(`${enable ? 'Enable' : 'Disable'} app error:`, err);
+            if (isConnected) {
+                showSnackAlert(`錯誤：${enable ? '啟用' : '停用'}應用程式失敗`);
+            }
         }
-        dialog.open = false;
-        await refreshAppList();
-    } catch (err) {
-        console.error(`${enable ? 'Enable' : 'Disable'} app error:`, err);
-        if (isConnected) {
-            showSnackAlert(`錯誤：${enable ? '啟用' : '停用'}應用程式失敗`);
-        }
+    };
+
+    if (!enable && isSystem) {
+        // Disabling a system app -> Show Warning
+        showSystemWarning(pkg, action);
+    } else {
+        await action();
     }
 }
 
-function promptDelete(curDialog, pkg) {
+function promptDelete(curDialog, pkg, isSystem = false) {
     curDialog.open = false;
-    const nameEl = document.getElementById('delete-app-name');
-    nameEl.textContent = pkg;
-    els.dialogDeleteApp.open = true;
-    document.getElementById('confirm-delete-btn').onclick = () => {
-        uninstallApp(pkg);
-        els.dialogDeleteApp.open = false;
+    
+    const showDeleteConfirm = () => {
+        const nameEl = document.getElementById('delete-app-name');
+        nameEl.textContent = pkg;
+        els.dialogDeleteApp.open = true;
+        document.getElementById('confirm-delete-btn').onclick = () => {
+            uninstallApp(pkg);
+            els.dialogDeleteApp.open = false;
+        };
     };
+
+    if (isSystem) {
+        showSystemWarning(pkg, showDeleteConfirm);
+    } else {
+        showDeleteConfirm();
+    }
 }
 
 async function uninstallApp(pkg) {
