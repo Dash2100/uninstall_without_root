@@ -33,7 +33,7 @@ const els = {
 let isConnected = false;
 let isConnecting = false;
 let appsList = { apps: { user: {}, system: {} } };
-let disabledApps = [];
+let disabledApps = new Set();
 let connectedDevices = [];
 let selectedDevice = null;
 let useHelperMethod = false;
@@ -56,6 +56,7 @@ function toggleConnectionIcon(connected, loading = false) {
 function clearAppList() {
     els.appListContainer.innerHTML = '';
     els.appListContainer.style.display = 'none';
+    els.appListLoading.style.display = 'none';
     els.appListDisconnected.style.display = 'flex';
 }
 
@@ -120,61 +121,75 @@ function handleDeviceDisconnected() {
 }
 
 // Core Logic
+let _showingDeviceSelection = false;
+
 async function getDevice() {
     if (isConnecting) return;
 
     isConnecting = true;
-    isConnected = false;
-    toggleConnectionIcon(false, true);
 
     try {
+        const wasConnected = isConnected;
+        const previousDevice = selectedDevice;
+
         const output = await runADBcommand('devices');
         if (!output.includes('List of devices attached')) {
+            isConnected = false;
             clearAppList();
             toggleConnectionIcon(false, false);
             return;
         }
 
-        const lines = output.trim().split('\n').slice(1).filter(Boolean);
-        if (!lines.length) {
-            toggleConnectionIcon(false, false);
-            clearAppList();
-            return;
-        }
-
-        // devices list
+        const lines = output.trim().split(/\r?\n/).slice(1).filter(Boolean);
         const devices = [];
         for (const line of lines) {
-            const [id, status] = line.split('\t');
-            if (status === 'device') {
+            const [id, status] = line.trim().split('\t');
+            if (status && status.trim() === 'device') {
                 devices.push({ id, status });
             }
         }
 
+        console.log(`[USB] getDevice: found ${devices.length} device(s)`, devices.map(d => d.id));
+
         if (devices.length === 0) {
-            showSnackAlert('沒有可用的設備');
-            toggleConnectionIcon(false, false);
-            clearAppList();
+            if (wasConnected) {
+                handleDeviceDisconnected();
+            } else {
+                toggleConnectionIcon(false, false);
+                clearAppList();
+            }
             return;
         }
 
-        // automatically connect if only one is available
         if (devices.length === 1) {
+            if (wasConnected && previousDevice === devices[0].id) {
+                console.log('[USB] Already connected to sole device, skipping');
+                return;
+            }
+            isConnected = false;
+            toggleConnectionIcon(false, true);
             await finalizeConnection(devices[0].id);
             return;
         }
 
-        // if multiple devices are found, show selection dialog
+        // Multiple devices - show selection dialog
+        console.log(`[USB] Multiple devices detected (${devices.length}), showing selection`);
         connectedDevices = devices;
+        _showingDeviceSelection = true;
         await showDeviceSelectionDialog();
+        // isConnecting stays true while dialog is open; released by confirm or close handler
 
     } catch (err) {
         console.error('[adb] Get Device Error:', err);
         showSnackAlert('連接設備時發生錯誤');
+        isConnected = false;
         clearAppList();
         toggleConnectionIcon(false, false);
     } finally {
-        isConnecting = false;
+        // Always release lock UNLESS the device selection dialog is showing
+        if (!_showingDeviceSelection) {
+            isConnecting = false;
+        }
     }
 }
 
@@ -184,25 +199,31 @@ async function showDeviceSelectionDialog() {
 
     menu.innerHTML = '';
 
-    for (const device of connectedDevices) {
+    // Fetch model names in parallel for speed
+    const deviceInfos = await Promise.all(connectedDevices.map(async (device) => {
         try {
             const modelOutput = await runADBcommand(`-s ${device.id} shell getprop ro.product.model`);
-            const model = modelOutput.trim() || '未知型號';
-
-            const menuItem = document.createElement('mdui-menu-item');
-            menuItem.value = device.id;
-            menuItem.setAttribute('selected-icon', 'link');
-            menuItem.textContent = `${model} (${device.id})`;
-            menu.appendChild(menuItem);
+            return { id: device.id, model: modelOutput.trim() || '未知型號' };
         } catch (err) {
             console.error(`獲取裝置 ${device.id} 型號失敗:`, err);
-            const menuItem = document.createElement('mdui-menu-item');
-            menuItem.value = device.id;
-            menuItem.setAttribute('selected-icon', 'link');
-            menuItem.textContent = `未知型號 (${device.id})`;
-            menu.appendChild(menuItem);
+            return { id: device.id, model: '未知型號' };
         }
+    }));
+
+    for (const info of deviceInfos) {
+        const menuItem = document.createElement('mdui-menu-item');
+        menuItem.value = info.id;
+        menuItem.setAttribute('selected-icon', 'link');
+        // Indicate connection type (wireless if contains IP:port)
+        const isWireless = info.id.includes(':');
+        const typeLabel = isWireless ? '無線' : 'USB';
+        const currentLabel = (selectedDevice === info.id) ? ' ✓ 目前連線' : '';
+        menuItem.textContent = `${info.model} (${typeLabel}: ${info.id})${currentLabel}`;
+        menu.appendChild(menuItem);
     }
+
+    // Don't pre-select any device - user must actively choose
+    menu.value = '';
 
     const confirmBtn = dialog.querySelector('mdui-button[slot="action"]');
     confirmBtn.onclick = () => confirmDeviceSelection();
@@ -210,18 +231,48 @@ async function showDeviceSelectionDialog() {
     dialog.open = true;
 }
 
+function cancelDeviceSelection() {
+    const dialog = els.dialogSelectDevice;
+    dialog.open = false;
+    _showingDeviceSelection = false;
+    isConnecting = false;
+}
+
 async function confirmDeviceSelection() {
     const dialog = els.dialogSelectDevice;
     const menu = dialog.querySelector('mdui-menu');
     const selectedValue = menu.value;
 
+    // Nothing selected = same as cancel
     if (!selectedValue) {
-        showSnackAlert('請選擇一個裝置');
+        cancelDeviceSelection();
         return;
     }
 
     dialog.open = false;
+    _showingDeviceSelection = false;
+    isConnecting = false;
+
+    // If selecting the same device that's already connected, skip re-init
+    if (isConnected && selectedDevice === selectedValue) {
+        console.log('[USB] Same device selected, keeping connection');
+        return;
+    }
+
+    isConnected = false;
+    toggleConnectionIcon(false, true);
     await finalizeConnection(selectedValue);
+}
+
+// Release isConnecting lock if user closes the device selection dialog without selecting
+if (els.dialogSelectDevice) {
+    els.dialogSelectDevice.addEventListener('close', () => {
+        if (_showingDeviceSelection) {
+            console.log('[USB] Device selection dialog closed without selection');
+            _showingDeviceSelection = false;
+            isConnecting = false;
+        }
+    });
 }
 
 async function runADBcommandWithDevice(command) {
@@ -234,11 +285,23 @@ async function runADBcommandWithDevice(command) {
 // Push helper DEX to device and validate the result
 async function pushHelperDex() {
     try {
+        // Check if DEX already exists on device (skip push for faster reconnection)
+        const checkCmd = selectedDevice
+            ? `-s ${selectedDevice} shell ls /data/local/tmp/helper.dex`
+            : 'shell ls /data/local/tmp/helper.dex';
+        try {
+            const checkResult = await runADBcommand(checkCmd, 0, true);
+            if (checkResult && checkResult.includes('helper.dex') && !checkResult.includes('No such file')) {
+                console.log('[Helper] DEX already exists on device, skipping push');
+                return true;
+            }
+        } catch (e) { /* file doesn't exist, proceed with push */ }
+
         const dexPath = await window.getHelperDexPath();
 
         // Verify the DEX file exists locally before pushing
         const exists = await window.checkFileExists(dexPath);
-        
+
         if (!exists) {
             console.error('[Helper] DEX file not found at:', dexPath);
             return false;
@@ -290,11 +353,11 @@ async function refreshAppList() {
         if (useHelperMethod) {
             appsList = await fetchAppsWithHelper();
             // Build disabledApps from helper data
-            disabledApps = [];
+            disabledApps = new Set();
             for (const type of ['user', 'system']) {
                 for (const app of Object.values(appsList.apps[type])) {
                     if (!app.enabled) {
-                        disabledApps.push(app.package_name);
+                        disabledApps.add(app.package_name);
                     }
                 }
             }
@@ -341,11 +404,11 @@ async function fetchDisabledApps() {
             ? `-s ${selectedDevice} shell pm list packages -d`
             : 'shell pm list packages -d';
         const res = await runADBcommand(command);
-        return res.trim().split('\n').map(l => l.replace('package:', '').trim());
+        return new Set(res.trim().split(/\r?\n/).map(l => l.replace('package:', '').trim()));
     } catch (err) {
         console.error('[adb] Get Disabled Apps Error:', err);
         showSnackAlert('獲取「已停用的應用程式」時發生錯誤');
-        return [];
+        return new Set();
     }
 }
 
@@ -354,7 +417,7 @@ async function fetchAppsLegacy() {
         ? `-s ${selectedDevice} shell pm list packages -f`
         : 'shell pm list packages -f';
     const res = await runADBcommand(command);
-    const lines = res.trim().split('\n');
+    const lines = res.trim().split(/\r?\n/);
     const apps = { user: {}, system: {} };
     lines.forEach(line => {
         const match = /package:(.+)=([^\s]+)/.exec(line) || [];
@@ -440,8 +503,8 @@ function renderAppList({ apps }) {
             return a.package_name.localeCompare(b.package_name);
         } else if (currentSort === 'status') {
             // Disabled apps first
-            const aDisabled = disabledApps.includes(a.package_name) ? 0 : 1;
-            const bDisabled = disabledApps.includes(b.package_name) ? 0 : 1;
+            const aDisabled = disabledApps.has(a.package_name) ? 0 : 1;
+            const bDisabled = disabledApps.has(b.package_name) ? 0 : 1;
             return aDisabled - bDisabled || (a.label || a.package_name).localeCompare(b.label || b.package_name);
         }
         return 0;
@@ -505,7 +568,7 @@ function renderVirtualAppList() {
 
 function createAppCard(app, type) {
     const tmpl = els.appCardTemplate.innerHTML;
-    const enabled = !disabledApps.includes(app.package_name);
+    const enabled = !disabledApps.has(app.package_name);
     const label = app.label || app.package_name;
     // In helper mode: show type and packageName; in fallback mode: only show type
     const subtitle = useHelperMethod
@@ -599,7 +662,7 @@ async function viewAppInfo(pkg) {
                 : `shell dumpsys package ${pkg}`;
             const info = await runADBcommand(command);
             const parsed = parseAppInfoLegacy(info);
-            const enabled = !disabledApps.includes(pkg);
+            const enabled = !disabledApps.has(pkg);
             showInfoDialog({
                 packageName: pkg,
                 label: pkg,
@@ -712,9 +775,11 @@ async function toggleAppState(pkg, enable, dialog) {
     try {
         await action(pkg);
         showSnackAlert(`應用程式 ${pkg} ${enable ? '已啟用' : '已停用'}`);
-        disabledApps = enable
-            ? disabledApps.filter(n => n !== pkg)
-            : [...disabledApps, pkg];
+        if (enable) {
+            disabledApps.delete(pkg);
+        } else {
+            disabledApps.add(pkg);
+        }
         dialog.open = false;
         await refreshAppList();
     } catch (err) {
@@ -805,6 +870,7 @@ window.handleWirelessConnection = async function (deviceId) {
 
 // Handle device change events (called from integration.js)
 let appInitialized = false;
+let _deviceChangeTimer = null;
 window.handleDeviceChange = function (deviceList) {
     console.log('[USB] Device change detected:', deviceList);
 
@@ -820,45 +886,36 @@ window.handleDeviceChange = function (deviceList) {
         return;
     }
 
-    // Check if this is a wireless connection
-    const isWirelessDevice = deviceList.includes('.') && deviceList.includes(':');
-    if (isWirelessDevice && typeof window.wirelessConnectionState !== 'undefined' &&
+    // Skip during wireless connection process
+    if (typeof window.wirelessConnectionState !== 'undefined' &&
         window.wirelessConnectionState && window.wirelessConnectionState.isConnecting) {
         console.log('[USB] Ignoring device change during wireless connection process');
         return;
     }
 
-    // Parse device list to check for available devices
-    const hasValidDevice = deviceList.includes('device') || deviceList.includes('recovery');
-    const wasConnected = isConnected;
-
-    // If already connected and current device is still in the list, skip reconnection
-    if (isConnected && selectedDevice && hasValidDevice && deviceList.includes(selectedDevice)) {
-        console.log('[USB] Current device still connected, skipping reconnection');
-        return;
+    // Debounce: cancel previous timer and wait for events to settle
+    if (_deviceChangeTimer) {
+        clearTimeout(_deviceChangeTimer);
     }
 
-    setTimeout(async () => {
-        if (hasValidDevice) {
-            if (manuallyDisconnected) {
-                console.log('[USB] Ignoring device change after manual disconnect');
-                return;
-            }
-            // Don't auto-connect while wireless dialog is open
-            const wirelessDialog = document.querySelector('.dialog-wireless-connect');
-            if (wirelessDialog && wirelessDialog.open) {
-                console.log('[USB] Ignoring device change while wireless dialog is open');
-                return;
-            }
-            console.log('[USB] Valid device detected, refreshing connection');
-            await getDevice();
-        } else {
-            console.log('[USB] No valid device found, updating UI to show disconnected state');
-            if (wasConnected) {
-                handleDeviceDisconnected();
-            }
+    _deviceChangeTimer = setTimeout(async () => {
+        _deviceChangeTimer = null;
+
+        if (manuallyDisconnected) {
+            console.log('[USB] Ignoring device change after manual disconnect');
+            return;
         }
-    }, 800);
+
+        // Don't auto-connect while wireless dialog is open
+        const wirelessDialog = document.querySelector('.dialog-wireless-connect');
+        if (wirelessDialog && wirelessDialog.open) {
+            console.log('[USB] Ignoring device change while wireless dialog is open');
+            return;
+        }
+
+        // getDevice() already queries `adb devices` and handles single/multi device logic
+        await getDevice();
+    }, 1200);
 };
 
 // Setup USB Device Change Monitoring
@@ -1046,6 +1103,8 @@ function initApp() {
         setTimeout(() => {
             appInitialized = true;
             console.log('[App] Initialization complete, USB monitoring active');
+            // Re-check devices in case new ones appeared during initialization
+            getDevice();
         }, 2000);
     });
 

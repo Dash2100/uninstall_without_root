@@ -20,7 +20,7 @@ function getBuiltinAdbPath() {
     const platform = os.platform();
     const arch = os.arch();
     let adbPath;
-    const base = app.isPackaged ? process.resourcesPath : __dirname;
+    const base = app.isPackaged ? process.resourcesPath : path.join(__dirname, 'resources');
     if (platform === 'darwin') {
         adbPath = path.join(base, 'adb', `mac-${arch}`, 'adb');
     } else if (platform === 'win32') {
@@ -329,7 +329,7 @@ ipcMain.handle('get-adb-info', async () => {
 
 // Get helper DEX file path for pushing to device
 ipcMain.handle('get-helper-dex-path', () => {
-    const base = app.isPackaged ? process.resourcesPath : __dirname;
+    const base = app.isPackaged ? process.resourcesPath : path.join(__dirname, 'resources');
     const dexPath = path.join(base, 'adb', 'helper.dex');
     console.log('[ADB] Helper DEX path:', dexPath);
     return dexPath;

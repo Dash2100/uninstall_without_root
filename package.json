@@ -28,8 +28,11 @@
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
     ],
-    "asarUnpack": [
-      "adb/**/*"
+    "extraResources": [
+      {
+        "from": "resources/",
+        "to": ""
+      }
     ],
     "mac": {
       "category": "public.app-category.utilities",
@@ -56,11 +59,11 @@
     }
   },
   "devDependencies": {
-    "electron": "^25.9.8",
+    "electron": "^40.4.1",
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
-    "bonjour": "^3.5.0",
+    "bonjour": "^3.5.1",
     "qrcode-terminal": "^0.12.0"
   }
 }

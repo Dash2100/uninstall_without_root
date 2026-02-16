@@ -304,7 +304,8 @@
             <p>偵測到目前有多個裝置連接，請選擇您要操作的裝置：</p>
         </span>
         <mdui-menu selects="single" class="mx-auto mt-5 rounded-xl"></mdui-menu>
-        <mdui-button slot="action" variant="tonal" onclick="confirmWarning();">確定</mdui-button>
+        <mdui-button slot="action" variant="text" onclick="cancelDeviceSelection();">取消</mdui-button>
+        <mdui-button slot="action" variant="tonal" onclick="confirmDeviceSelection();">確定</mdui-button>
     </mdui-dialog>
 
     <mdui-dialog class="dialog-disconnect-confirm">
