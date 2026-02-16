@@ -19,6 +19,7 @@
     <script src="./scripts/pages.js" defer></script>
     <script src="./scripts/wireless.js" defer></script>
     <script src="./scripts/func.js" defer></script>
+    <script src="./scripts/scrcpy.js" defer></script>
 
     <!-- mdui -->
     <script src="./scripts/lib/mdui.global.js" defer></script>
@@ -115,7 +116,89 @@
 
     </div>
 
-    <!-- page-2 settings -->
+    <!-- page-2 scrcpy -->
+    <div id="scrcpy" class="page">
+
+        <!-- app title bar -->
+        <mdui-top-app-bar class="relative">
+            <mdui-top-app-bar-title class="ml-5 font-bold">螢幕鏡像</mdui-top-app-bar-title>
+        </mdui-top-app-bar>
+
+        <!-- content -->
+        <div class="p-8 pt-3 scrcpy-content">
+
+            <!-- disconnected state -->
+            <div id="scrcpy-disconnected" class="flex flex-col items-center justify-center gap-4 pt-20">
+                <mdui-icon name="phonelink_off" class="text-6xl" style="font-size: 64px; opacity: 0.5;"></mdui-icon>
+                <p class="text-center" style="opacity: 0.6;">請先連接裝置後再使用螢幕鏡像功能</p>
+            </div>
+
+            <!-- connected state -->
+            <div id="scrcpy-connected" class="hidden flex flex-col gap-4">
+
+                <!-- status indicator -->
+                <mdui-card variant="filled" class="p-4">
+                    <div class="flex items-center gap-3">
+                        <mdui-icon name="cast" id="scrcpy-status-icon" style="font-size: 28px;"></mdui-icon>
+                        <div class="flex-1">
+                            <p class="font-bold" id="scrcpy-status-text">準備就緒</p>
+                            <p class="text-sm" style="opacity: 0.6;" id="scrcpy-device-name">—</p>
+                        </div>
+                        <mdui-button variant="tonal" id="btn-scrcpy-toggle" onclick="toggleScrcpy()">
+                            啟動鏡像
+                        </mdui-button>
+                    </div>
+                </mdui-card>
+
+                <!-- control panel -->
+                <mdui-card variant="outlined" class="p-4" id="scrcpy-controls" style="display: none;">
+                    <p class="font-bold mb-3">裝置控制</p>
+
+                    <!-- main nav buttons -->
+                    <div class="flex justify-center gap-3 mb-4">
+                        <mdui-button-icon variant="filled" class="scrcpy-nav-btn" onclick="sendKey(4)" title="返回">
+                            <mdui-icon name="arrow_back"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="filled" class="scrcpy-nav-btn" onclick="sendKey(3)" title="首頁">
+                            <mdui-icon name="circle" style="font-size: 20px;"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="filled" class="scrcpy-nav-btn" onclick="sendKey(187)" title="多工">
+                            <mdui-icon name="crop_square"></mdui-icon>
+                        </mdui-button-icon>
+                    </div>
+
+                    <mdui-divider></mdui-divider>
+
+                    <!-- extra controls -->
+                    <p class="font-bold mb-3 mt-3">快捷功能</p>
+                    <div class="flex justify-center gap-3 flex-wrap">
+                        <mdui-button-icon variant="tonal" onclick="sendKey(26)" title="電源鍵">
+                            <mdui-icon name="power_settings_new"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="tonal" onclick="sendKey(24)" title="音量+">
+                            <mdui-icon name="volume_up"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="tonal" onclick="sendKey(25)" title="音量-">
+                            <mdui-icon name="volume_down"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="tonal" onclick="sendKey(120)" title="截圖">
+                            <mdui-icon name="screenshot_monitor"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="tonal" onclick="sendKey(82)" title="選單">
+                            <mdui-icon name="menu"></mdui-icon>
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="tonal" onclick="sendKey(164)" title="靜音">
+                            <mdui-icon name="volume_off"></mdui-icon>
+                        </mdui-button-icon>
+                    </div>
+                </mdui-card>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- page-3 settings -->
     <div id="settings" class="page">
 
         <!-- app title bar -->
@@ -124,8 +207,8 @@
         </mdui-top-app-bar>
 
         <!-- content -->
-        <div class="p-8 pt-3">
-            <div class="flex flex-col gap-4">
+        <div class="p-8 pt-3 settings-scroll">
+            <div class="flex flex-col gap-4 pb-4">
                 <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="contrast"></mdui-avatar>
                     <div class="flex flex-col justify-center">
@@ -189,6 +272,23 @@
                     </div>
                 </mdui-card>
                 <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="cast"></mdui-avatar>
+                    <div class="flex flex-col justify-center flex-1 min-w-0">
+                        <p class="text-lg">Scrcpy 執行檔路徑</p>
+                        <p class="text-md text-gray-500 whitespace-nowrap truncate max-w-full" id="settings-scrcpy-info">
+                            使用內建版本</p>
+                    </div>
+
+                    <div class="flex items-center my-auto ml-auto mr-6 gap-3">
+                        <mdui-button-icon variant="filled" icon="refresh" class="my-auto" id="settings-scrcpy-reset"
+                            title="恢復使用內建版本">
+                        </mdui-button-icon>
+                        <mdui-button-icon variant="filled" icon="edit" class="my-auto" id="settings-scrcpy-select"
+                            title="選擇 Scrcpy 執行檔">
+                        </mdui-button-icon>
+                    </div>
+                </mdui-card>
+                <mdui-card class="w-full h-20 flex">
                     <mdui-avatar class="my-auto mx-4" icon="adb"></mdui-avatar>
                     <div class="flex flex-col justify-center">
                         <p class="text-lg">除錯模式</p>
@@ -198,11 +298,20 @@
                     </div>
                     <mdui-switch class="my-auto ml-auto mr-6" id="settings-debugmode"></mdui-switch>
                 </mdui-card>
+                <mdui-card class="w-full h-20 flex">
+                    <mdui-avatar class="my-auto mx-4" icon="restart_alt"></mdui-avatar>
+                    <div class="flex flex-col justify-center">
+                        <p class="text-lg">重置設定</p>
+                        <p class="text-md text-gray-500">
+                            所有設定將恢復為預設值
+                        </p>
+                    </div>
+                    <mdui-button-icon variant="filled" icon="delete_forever" class="my-auto ml-auto mr-6"
+                        id="settings-reset" title="重置所有設定">
+                    </mdui-button-icon>
+                </mdui-card>
             </div>
         </div>
-
-        <mdui-fab extended icon="refresh" class="fixed bottom-28 right-14 floating-pill"
-            id="settings-reset">重置設定</mdui-fab>
 
     </div>
 
@@ -248,6 +357,8 @@
         style="transition: none !important;">
         <mdui-navigation-bar-item icon="build" value="apps"
             onclick="switchPage('appList')">程式列表</mdui-navigation-bar-item>
+        <mdui-navigation-bar-item icon="cast" value="scrcpy"
+            onclick="switchPage('scrcpy')">螢幕鏡像</mdui-navigation-bar-item>
         <mdui-navigation-bar-item icon="tune" value="settings"
             onclick="switchPage('settings')">設定</mdui-navigation-bar-item>
         <mdui-navigation-bar-item icon="info" value="about" onclick="switchPage('about')">關於</mdui-navigation-bar-item>

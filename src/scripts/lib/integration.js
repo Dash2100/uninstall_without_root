@@ -17,6 +17,9 @@ window.breakWindow = () => ipcRenderer.invoke('break-window');
 window.getHelperDexPath = () => ipcRenderer.invoke('get-helper-dex-path');
 window.openTerminalWindow = () => ipcRenderer.invoke('open-terminal-window');
 window.closeTerminalWindow = () => ipcRenderer.invoke('close-terminal-window');
+window.startScrcpy = (serial) => ipcRenderer.invoke('start-scrcpy', serial);
+window.stopScrcpy = () => ipcRenderer.invoke('stop-scrcpy');
+window.isScrcpyRunning = () => ipcRenderer.invoke('is-scrcpy-running');
 
 // USB Device Change Monitoring
 window.addEventListener('DOMContentLoaded', () => {
@@ -35,6 +38,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.handleDeviceChange(deviceList);
                 }
             }, 500);
+        }
+    });
+
+    // Notify renderer when scrcpy process stops
+    ipcRenderer.on('scrcpy-stopped', () => {
+        console.log('[Integration] Scrcpy process stopped');
+        if (typeof window.onScrcpyStopped === 'function') {
+            window.onScrcpyStopped();
         }
     });
 

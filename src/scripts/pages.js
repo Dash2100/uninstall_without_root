@@ -1,6 +1,7 @@
 // Cache page elements
 const pages = {
     appList: document.getElementById('appList'),
+    scrcpy: document.getElementById('scrcpy'),
     settings: document.getElementById('settings'),
     about: document.getElementById('about')
 };

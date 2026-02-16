@@ -100,6 +100,8 @@ function handleDeviceDisconnected() {
     useHelperMethod = false;
     toggleConnectionIcon(false, false);
     clearAppList();
+    if (typeof updateScrcpyUI === 'function') updateScrcpyUI();
+    if (typeof stopScrcpyMirror === 'function' && typeof scrcpyRunning !== 'undefined' && scrcpyRunning) stopScrcpyMirror();
 
     // Close any open app info dialogs
     const appInfoDialogs = document.querySelectorAll('.dialog-appinfo');
@@ -383,6 +385,7 @@ async function finalizeConnection(deviceId) {
         showSnackAlert('Helper 推送失敗，已切換至相容模式');
     }
     await refreshAppList();
+    if (typeof updateScrcpyUI === 'function') updateScrcpyUI();
 }
 
 async function refreshAppList() {
@@ -1148,6 +1151,9 @@ function showDisconnectDialog(openWirelessAfter = false) {
 async function confirmDisconnect() {
     els.dialogDisconnectConfirm.open = false;
 
+    // Stop scrcpy if running
+    if (typeof stopScrcpyMirror === 'function' && scrcpyRunning) stopScrcpyMirror();
+
     // Execute proper disconnect commands
     await executeDisconnectCommands();
 
@@ -1158,11 +1164,15 @@ async function confirmDisconnect() {
     toggleConnectionIcon(false, false);
 
     clearAppList();
+    if (typeof updateScrcpyUI === 'function') updateScrcpyUI();
 }
 
 async function confirmDisconnectAndWireless() {
     els.dialogDisconnectConfirm.open = false;
 
+    // Stop scrcpy if running
+    if (typeof stopScrcpyMirror === 'function' && scrcpyRunning) stopScrcpyMirror();
+
     // Execute proper disconnect commands
     await executeDisconnectCommands();
 
@@ -1173,6 +1183,7 @@ async function confirmDisconnectAndWireless() {
     toggleConnectionIcon(false, false);
 
     clearAppList();
+    if (typeof updateScrcpyUI === 'function') updateScrcpyUI();
 
     els.dialogWirelessConnect.open = true;
 }

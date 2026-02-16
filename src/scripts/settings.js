@@ -11,6 +11,9 @@ const settingsEls = {
     adbInfo: document.getElementById('settings-adb-info'),
     adbSelect: document.getElementById('settings-adb-select'),
     adbReset: document.getElementById('settings-adb-reset'),
+    scrcpyInfo: document.getElementById('settings-scrcpy-info'),
+    scrcpySelect: document.getElementById('settings-scrcpy-select'),
+    scrcpyReset: document.getElementById('settings-scrcpy-reset'),
 };
 
 // Load configuration and update UI
@@ -235,6 +238,66 @@ async function resetToBuiltinAdb() {
     }
 }
 
+// Load Scrcpy information
+async function loadScrcpyInfo() {
+    try {
+        const config = await window.getConfig();
+        const scrcpyPath = config.custom_scrcpy_path;
+        if (scrcpyPath) {
+            const exists = await window.checkFileExists(scrcpyPath);
+            if (exists) {
+                settingsEls.scrcpyInfo.textContent = `自訂版本 - ${truncateFilePath(scrcpyPath, 30)}`;
+            } else {
+                settingsEls.scrcpyInfo.textContent = '自訂路徑無效（檔案不存在）';
+            }
+        } else {
+            settingsEls.scrcpyInfo.textContent = '使用內建版本';
+        }
+    } catch (error) {
+        console.error('Error loading scrcpy info:', error);
+        settingsEls.scrcpyInfo.textContent = '無法取得 Scrcpy 資訊';
+    }
+}
+
+// Select custom Scrcpy file
+async function selectScrcpyFile() {
+    try {
+        const { canceled, filePaths } = await window.showOpenDialog({
+            properties: ['openFile'],
+            title: '選擇 Scrcpy 執行檔',
+            filters: [
+                { name: 'Scrcpy 執行檔', extensions: process.platform === 'win32' ? ['exe'] : ['*'] }
+            ]
+        });
+
+        if (!canceled && filePaths.length) {
+            const selectedPath = filePaths[0];
+            const exists = await window.checkFileExists(selectedPath);
+            if (exists) {
+                await updateConfig('custom_scrcpy_path', selectedPath);
+                settingsEls.scrcpyInfo.textContent = `自訂版本 - ${truncateFilePath(selectedPath, 30)}`;
+                showSnackAlert('Scrcpy 路徑設定成功！');
+            } else {
+                showSnackAlert('所選檔案不存在');
+            }
+        }
+    } catch (error) {
+        console.error('Error selecting Scrcpy file:', error);
+        showSnackAlert('選擇檔案時發生錯誤');
+    }
+}
+
+// Reset Scrcpy path
+async function resetScrcpyPath() {
+    try {
+        await updateConfig('custom_scrcpy_path', null);
+        settingsEls.scrcpyInfo.textContent = '使用內建版本';
+        showSnackAlert('已恢復使用內建 Scrcpy');
+    } catch (error) {
+        console.error('Error resetting Scrcpy path:', error);
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadConfig();
@@ -265,4 +328,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // Scrcpy event listeners
+    if (settingsEls.scrcpySelect) {
+        settingsEls.scrcpySelect.addEventListener('click', selectScrcpyFile);
+    }
+
+    if (settingsEls.scrcpyReset) {
+        settingsEls.scrcpyReset.addEventListener('click', () => {
+            showQuestionDialog({
+                title: '恢復內建 Scrcpy',
+                description: '確定要恢復使用內建的 Scrcpy 版本嗎？',
+                acceptText: '確定',
+                denyText: '取消',
+                onAccept: resetScrcpyPath,
+            });
+        });
+    }
+
+    loadScrcpyInfo();
 });

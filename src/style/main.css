@@ -333,3 +333,27 @@ mdui-navigation-bar {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     min-width: 180px;
 }
+
+/* Settings page scroll */
+.settings-scroll {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+/* Scrcpy page */
+.scrcpy-content {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.scrcpy-nav-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+}
+
+#scrcpy-controls mdui-button-icon[variant="tonal"] {
+    width: 48px;
+    height: 48px;
+}
