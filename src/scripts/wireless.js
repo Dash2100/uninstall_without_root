@@ -257,6 +257,9 @@ async function discoverConnectPort(address, pairingPort) {
 
     // 4. TCP port scan as last resort
     console.log('[wireless] Falling back to TCP port scan...');
+    if (typeof updateLoadingLabel === 'function') {
+        updateLoadingLabel('正在掃描連線通訊埠，這可能需要較長的時間...');
+    }
     const nearStart = Math.max(30000, pairingPort - 5000);
     const nearEnd = Math.min(50000, pairingPort + 5000);
 
@@ -384,7 +387,7 @@ async function pairAndConnect(address, pairingPort, password) {
         if (!connectPort) {
             console.log('[wireless] First port discovery failed, retrying after delay...');
             if (typeof updateLoadingLabel === 'function') {
-                updateLoadingLabel('正在搜尋連線端口...');
+                updateLoadingLabel('正在搜尋連線通訊埠...');
             }
             await new Promise(r => setTimeout(r, 3000));
             connectPort = await discoverConnectPort(address, pairingPort);
@@ -393,7 +396,7 @@ async function pairAndConnect(address, pairingPort, password) {
         stopBonjourScanning();
 
         if (!connectPort) {
-            throw new Error('無法找到連線端口，請重新開啟裝置的無線偵錯後重試');
+            throw new Error('無法找到連線通訊埠，請重新開啟裝置的無線偵錯後重試');
         }
 
         // Step 5: Connect
@@ -566,7 +569,7 @@ function initWirelessConnection() {
             }
 
             if (!ip.includes(':')) {
-                showSnackAlert('請提供完整的 IP:配對端口 格式（例如：192.168.1.100:12345）');
+                showSnackAlert('請提供完整的 IP:配對通訊埠 格式（例如：192.168.1.100:12345）');
                 return;
             }
 

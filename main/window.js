@@ -19,6 +19,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 750, height: 800, resizable: false,
         autoHideMenuBar: true,
+        show: false,
         backgroundColor: '#0f0f0f',
         title: '解除安裝原廠應用程式免ROOT',
         webPreferences: {
@@ -27,6 +28,10 @@ function createWindow() {
         }
     });
     mainWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+    });
     global.mainWindow = mainWindow;
 
     mainWindow.on('closed', () => {

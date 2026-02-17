@@ -52,7 +52,7 @@ function setupUSBDeviceMonitoring() {
 
 function confirmWarning() {
     els.dialogWarning.open = false;
-    getDevice();
+    startAppAfterWarning();
 }
 
 function handleConnectionClick() {

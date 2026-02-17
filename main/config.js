@@ -20,7 +20,8 @@ const defaultConfig = {
     darkmode: true,
     debug_mode: false,
     extract_path: getDefaultExtractPath(),
-    theme_color: '#6750A4',
+    // theme_color: '#6750A4',
+    theme_color: '#507ba4',
     custom_adb_path: null,
     custom_scrcpy_path: null
 };
@@ -70,6 +71,10 @@ function registerIPC() {
     ipcMain.handle('reset-config', () => {
         console.log('[Config] reset-config requested');
         return resetConfig();
+    });
+
+    ipcMain.handle('get-default-config', () => {
+        return defaultConfig;
     });
 }
 

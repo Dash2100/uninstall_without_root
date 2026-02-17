@@ -86,6 +86,11 @@ function initApp() {
     els.appLoading.classList.remove('app-loading-showing');
     switchPage('appList');
 
+    // Show warning dialog first; actual init happens in confirmWarning()
+    els.dialogWarning.open = true;
+}
+
+function startAppAfterWarning() {
     getDevice().then(() => {
         setTimeout(() => {
             appInitialized = true;

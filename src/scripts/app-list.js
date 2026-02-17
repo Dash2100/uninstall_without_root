@@ -138,6 +138,11 @@ function renderAppList({ apps }) {
     }
 
     allApps.sort((a, b) => {
+        // Sort by type first (User apps before System apps)
+        if (a.type !== b.type) {
+            return a.type === '使用者程式' ? -1 : 1;
+        }
+
         if (currentSort === 'name') {
             return (a.label || a.package_name).localeCompare(b.label || b.package_name);
         } else if (currentSort === 'package') {

@@ -20,6 +20,7 @@ const settingsEls = {
 async function loadConfig() {
     const { darkmode, debug_mode, extract_path, theme_color } =
         await window.getConfig();
+    const defaultConfig = await window.getDefaultConfig();
     console.log('[config] Loaded config:', { darkmode, debug_mode, extract_path, theme_color });
 
     settingsEls.darkMode.checked = darkmode;
@@ -28,7 +29,7 @@ async function loadConfig() {
     settingsEls.extractPathText.innerText = truncateFilePath(extract_path, 35);
 
     // Load saved color or use default
-    const savedColor = theme_color || '#6750A4';
+    const savedColor = theme_color || defaultConfig.theme_color;
     settingsEls.colorPicker.value = savedColor;
     applyColorScheme(savedColor);
 
@@ -304,8 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ensure reset button is properly bound after DOM is loaded
     const resetColorBtn = document.getElementById('settings-reset-color');
     if (resetColorBtn) {
-        resetColorBtn.addEventListener('click', () => {
-            const defaultColor = '#6750A4';
+        resetColorBtn.addEventListener('click', async () => {
+            const defaultConfig = await window.getDefaultConfig();
+            const defaultColor = defaultConfig.theme_color;
             settingsEls.colorPicker.value = defaultColor;
             updateConfig('theme_color', defaultColor);
             applyColorScheme(defaultColor);

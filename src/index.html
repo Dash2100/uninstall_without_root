@@ -108,7 +108,7 @@
 
                 <!-- 連接裝置提示 -->
                 <div class="flex flex-col justify-center items-center h-full w-full" id="app-list-disconnected">
-                    <mdui-icon name="link_off" class="text-6xl mx-auto my-5"></mdui-icon>
+                    <mdui-icon name="link_off" class="text-6xl mx-auto mb-5"></mdui-icon>
                     <p class="text-center text-2xl">請連接裝置</p>
                 </div>
 
@@ -133,19 +133,21 @@
         </mdui-top-app-bar>
 
         <!-- content -->
-        <div class="p-8 pt-3 scrcpy-content">
+        <div class="p-8 h-full scrcpy-content">
 
             <!-- disconnected state -->
-            <div id="scrcpy-disconnected" class="flex flex-col items-center justify-center gap-4 pt-20">
-                <mdui-icon name="phonelink_off" class="text-6xl" style="font-size: 64px; opacity: 0.5;"></mdui-icon>
-                <p class="text-center" style="opacity: 0.6;">請先連接裝置後再使用螢幕鏡像功能</p>
+            <div id="scrcpy-disconnected" class="fixed inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
+                <div class="pointer-events-auto">
+                    <mdui-icon name="phonelink_off" class="text-6xl mx-auto mb-5 block"></mdui-icon>
+                    <p class="text-center text-2xl">請連接裝置</p>
+                </div>
             </div>
 
             <!-- connected state -->
-            <div id="scrcpy-connected" class="hidden flex flex-col gap-4">
+            <div id="scrcpy-connected" class="hidden flex-col gap-4">
 
                 <!-- status indicator -->
-                <mdui-card variant="filled" class="p-4">
+                <mdui-card variant="filled" class="p-4 w-full">
                     <div class="flex items-center gap-3">
                         <mdui-icon name="cast" id="scrcpy-status-icon" style="font-size: 28px;"></mdui-icon>
                         <div class="flex-1">
@@ -159,7 +161,7 @@
                 </mdui-card>
 
                 <!-- control panel -->
-                <mdui-card variant="outlined" class="p-4" id="scrcpy-controls" style="display: none;">
+                <mdui-card variant="outlined" class="p-4 w-full" id="scrcpy-controls" style="display: none;">
                     <p class="font-bold mb-3">裝置控制</p>
 
                     <!-- main nav buttons -->
@@ -236,8 +238,21 @@
                         </p>
                     </div>
                     <div class="flex items-center my-auto ml-auto mr-6 gap-3">
-                        <input type="color" id="settings-colorpicker" class="w-8 h-8 rounded border-0 cursor-pointer"
-                            value="#6750A4">
+                        <div class="relative flex items-center justify-center">
+                            <input type="color" id="settings-colorpicker"
+                                class="w-10 h-10 p-0 border-0 rounded-full overflow-hidden cursor-pointer appearance-none bg-transparent" value="#6750A4">
+                             <!-- Helper style for color input -->
+                            <style>
+                                #settings-colorpicker::-webkit-color-swatch-wrapper {
+                                    padding: 0;
+                                }
+                                #settings-colorpicker::-webkit-color-swatch {
+                                    border: none;
+                                    border-radius: 50%;
+                                    border: 1px solid rgba(0,0,0,0.1);
+                                }
+                            </style>
+                        </div>
                         <mdui-button-icon variant="filled" icon="refresh" id="settings-reset-color">
                         </mdui-button-icon>
                     </div>
@@ -402,16 +417,16 @@
     <mdui-dialog class="dialog-warning">
         <span slot="headline" class="font-bold">免責聲明</span>
         <span slot="description">
-            解除安裝必要程式可能導致 Android 系統的損壞，請謹慎操作，不要解除安裝你沒把握的應用程式！
+            解除安裝必要程式可能導致 Android 系統的損壞，請謹慎操作，確保您知道自己在做什麼。
             <br />
-            我們並不會對任何因使用本程式而導致的損壞或資料會損負責。
+            我們並不會對任何因使用本程式而導致的損壞或資料遺失負責，請務必在操作前備份重要資料。
             <br />
             <br />
             當您按下確定按鈕，即表示您已經同意上述條款。
             <br />
             <br />
             <span class="text-yellow-600 font-bold">
-                注意：部分中國手機無法支援！
+                注意：部分手機可能因系統限制無法完全支援
             </span>
         </span>
         <mdui-button slot="action" variant="tonal" onclick="window.breakWindow();">不同意</mdui-button>
