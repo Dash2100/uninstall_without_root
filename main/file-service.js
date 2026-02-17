@@ -73,7 +73,7 @@ function registerIPC() {
         );
 
         console.log('[File] files moved successfully');
-        return { state: true, files };
+        return { state: true, files, dest };
     });
 
     ipcMain.handle('open-file-path', (_e, fp) => {

@@ -86,9 +86,17 @@ function downloadAPK(pkg, dialog) {
 
     window.getConfig()
         .then(cfg => extractAPK(pkg, cfg.extract_path))
-        .then(ok => {
+        .then(result => {
             if (isConnected) {
-                showSnackAlert(ok ? `應用程式 ${pkg} 已成功提取` : `提取應用程式 ${pkg} 失敗`);
+                if (result) {
+                    const filePath = typeof result === 'string' ? result : null;
+                    showSnackAlert(`應用程式 ${pkg} 已成功提取`, filePath ? {
+                        actionText: '顯示檔案',
+                        onAction: () => window.openFilePath(filePath)
+                    } : {});
+                } else {
+                    showSnackAlert(`提取應用程式 ${pkg} 失敗`);
+                }
             }
         })
         .catch(err => {

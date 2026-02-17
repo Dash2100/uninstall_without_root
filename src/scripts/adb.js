@@ -181,6 +181,11 @@ async function extractAPK(packageName, extractPath) {
         }
 
         appendToTerminal('APK 已成功提取並處理', 'success');
+        // Return the full path to the extracted file
+        const fileName = resp2.files && resp2.files[0];
+        if (fileName && resp2.dest) {
+            return `${resp2.dest}/${fileName}`;
+        }
         return true;
     } catch (error) {
         appendToTerminal(`Error extracting APK ${packageName}: ${error}`, 'error');

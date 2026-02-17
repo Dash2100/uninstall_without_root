@@ -1,5 +1,6 @@
 // Show a brief message in the snackbar using template
-function showSnackAlert(msg) {
+// options: { actionText, onAction } for optional action button
+function showSnackAlert(msg, options = {}) {
     // return;
     console.log('[snackbar]:', msg);
 
@@ -11,6 +12,11 @@ function showSnackAlert(msg) {
 
     const snackbar = template.content.cloneNode(true).querySelector('.snackbar-alert');
     snackbar.innerText = msg;
+
+    if (options.actionText && options.onAction) {
+        snackbar.setAttribute('action', options.actionText);
+        snackbar.addEventListener('action-click', options.onAction);
+    }
 
     document.body.appendChild(snackbar);
 
@@ -26,12 +32,13 @@ function showSnackAlert(msg) {
         }, 100);
     });
 
-    // Auto-close after 3 seconds if no manual close
+    // Auto-close after 5 seconds if action button present, 3 seconds otherwise
+    const delay = options.actionText ? 5000 : 3000;
     setTimeout(() => {
         if (snackbar.open) {
             snackbar.open = false;
         }
-    }, 3000);
+    }, delay);
 }
 
 // Create and display a confirmation dialog
