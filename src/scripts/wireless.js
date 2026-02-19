@@ -200,22 +200,29 @@ async function scanPortRange(host, startPort, endPort, excludePort, batchSize = 
     return null;
 }
 
-async function discoverPortViaAdbMdns(address) {
-    try {
-        console.log('[wireless] Trying adb mdns services...');
-        const result = await runADBcommand('mdns services', 0, true);
-        if (!result) return null;
-        for (const line of result.split(/\r?\n/)) {
-            if (line.includes('adb-tls-connect') && line.includes(address)) {
-                const match = line.match(/\s(\d{4,5})\s/);
-                if (match) {
-                    console.log(`[wireless] adb mdns found connect port: ${match[1]}`);
-                    return parseInt(match[1]);
+async function discoverPortViaAdbMdns(address, retries = 3, delayMs = 2000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            console.log(`[wireless] Trying adb mdns services (attempt ${attempt}/${retries})...`);
+            const result = await runADBcommand('mdns services', 0, true);
+            if (result) {
+                for (const line of result.split(/\r?\n/)) {
+                    if (line.includes('adb-tls-connect') && line.includes(address)) {
+                        const match = line.match(/\s(\d{4,5})\s/);
+                        if (match) {
+                            console.log(`[wireless] adb mdns found connect port: ${match[1]}`);
+                            return parseInt(match[1]);
+                        }
+                    }
                 }
             }
+            if (attempt < retries) {
+                console.log(`[wireless] mdns services empty, retrying in ${delayMs}ms...`);
+                await new Promise(r => setTimeout(r, delayMs));
+            }
+        } catch (e) {
+            console.log('[wireless] adb mdns services not available');
         }
-    } catch (e) {
-        console.log('[wireless] adb mdns services not available');
     }
     return null;
 }
@@ -247,8 +254,8 @@ async function discoverConnectPort(address, pairingPort) {
     // 2. Wait briefly for bonjour (if still active)
     if (wireless.bonjour) {
         console.log('[wireless] Waiting for bonjour connect port...');
-        const port = await waitForBonjourPort(5000);
-        if (port) return port;
+        const bonjourPort = await waitForBonjourPort(5000);
+        if (bonjourPort) return bonjourPort;
     }
 
     // 3. Try ADB's built-in mDNS
@@ -276,6 +283,51 @@ async function discoverConnectPort(address, pairingPort) {
     return null;
 }
 
+// === Manual Port Input Fallback ===
+
+function promptManualPort(address) {
+    return new Promise((resolve) => {
+        const dialog = document.createElement('mdui-dialog');
+        dialog.headline = '手動輸入連線埠';
+        dialog.innerHTML = `
+            <div style="padding: 0 16px;">
+                <p style="margin-bottom: 12px; color: var(--mdui-color-on-surface-variant);">
+                    無法自動找到連線埠。請開啟手機的「無線偵錯」頁面，查看「IP 位址與連接埠」欄位中顯示的通訊埠（通常為 3 或 4 開頭的五位數）。
+                </p>
+                <mdui-text-field label="連線埠" type="number" placeholder="例如：43721" style="width: 100%;"></mdui-text-field>
+            </div>
+            <mdui-button slot="action" variant="text" class="cancel-btn">取消</mdui-button>
+            <mdui-button slot="action" variant="filled" class="confirm-btn">連線</mdui-button>
+        `;
+        document.body.appendChild(dialog);
+
+        const input = dialog.querySelector('mdui-text-field');
+        const cancelBtn = dialog.querySelector('.cancel-btn');
+        const confirmBtn = dialog.querySelector('.confirm-btn');
+
+        function cleanup(result) {
+            dialog.open = false;
+            setTimeout(() => { if (dialog.parentNode) dialog.parentNode.removeChild(dialog); }, 300);
+            resolve(result);
+        }
+
+        cancelBtn.addEventListener('click', () => cleanup(null));
+        confirmBtn.addEventListener('click', () => {
+            const port = parseInt(input.value);
+            if (port >= 30000 && port <= 49999) {
+                cleanup(port);
+            } else {
+                if (typeof showSnackAlert === 'function') {
+                    showSnackAlert('請輸入有效的通訊埠（30000-49999）');
+                }
+            }
+        });
+
+        dialog.open = true;
+        setTimeout(() => input.focus(), 100);
+    });
+}
+
 // === ADB Cleanup ===
 
 async function simpleAdbCleanup() {
@@ -287,11 +339,11 @@ async function simpleAdbCleanup() {
 async function restartAdbServer() {
     console.log('[wireless] Restarting ADB server...');
     try {
-        try { await runADBcommand('kill-server', 0, true); } catch (e) { /* ignore */ }
+        try { await runADBcommand('kill-server', 0); } catch (e) { /* ignore */ }
         await new Promise(r => setTimeout(r, 1500));
-        await runADBcommand('start-server', 0, true);
+        await runADBcommand('start-server', 0);
         await new Promise(r => setTimeout(r, 1000));
-        await runADBcommand('version', 0, true);
+        await runADBcommand('version', 0);
         console.log('[wireless] ADB server restarted successfully');
         return true;
     } catch (error) {
@@ -376,27 +428,21 @@ async function pairAndConnect(address, pairingPort, password) {
             wireless.discoveredPorts = savedPorts;
         }
 
-        // Step 4: Discover connect port (with retry)
-        // Wait briefly for device to set up connect service after pairing
+        // Step 4: Discover connect port
         wireless.state = 'connecting';
         await new Promise(r => setTimeout(r, 800));
 
         let connectPort = await discoverConnectPort(address, pairingPort);
 
-        // Retry once if first attempt failed (device may need more time)
-        if (!connectPort) {
-            console.log('[wireless] First port discovery failed, retrying after delay...');
-            if (typeof updateLoadingLabel === 'function') {
-                updateLoadingLabel('正在搜尋連線通訊埠...');
-            }
-            await new Promise(r => setTimeout(r, 3000));
-            connectPort = await discoverConnectPort(address, pairingPort);
-        }
-
         stopBonjourScanning();
 
         if (!connectPort) {
-            throw new Error('無法找到連線通訊埠，請重新開啟裝置的無線偵錯後重試');
+            // Last resort: ask user to manually enter the connect port
+            if (typeof hideLoading === 'function') hideLoading();
+            connectPort = await promptManualPort(address);
+            if (!connectPort) {
+                throw new Error('無法找到連線通訊埠，請重新開啟裝置的無線偵錯後重試');
+            }
         }
 
         // Step 5: Connect

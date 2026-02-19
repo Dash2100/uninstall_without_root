@@ -1,13 +1,14 @@
 // Execute an ADB command with improved error handling
-async function runADBcommand(command, retries = 1) {
+// silent: if true, suppress all terminal output (for internal checks)
+async function runADBcommand(command, retries = 1, silent = false) {
     console.log('[adb] ADB command:', command);
-    appendToTerminal(`> ${command}`, 'command');
+    if (!silent) appendToTerminal(`> ${command}`, 'command');
 
     let lastError;
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await window.executeAdbCommand(command);
-            appendToTerminal(response || '(No output)', 'response');
+            if (!silent) appendToTerminal(response || '(No output)', 'response');
             return response;
         } catch (error) {
             lastError = error;
@@ -18,10 +19,8 @@ async function runADBcommand(command, retries = 1) {
             const messageString = error.message ? error.message.toLowerCase() : '';
 
             if (errorString.includes('device offline') || errorString.includes('device not found') ||
-                errorString.includes('not found') ||
-                messageString.includes('device offline') || messageString.includes('device not found') ||
-                messageString.includes('not found')) {
-                appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
+                messageString.includes('device offline') || messageString.includes('device not found')) {
+                if (!silent) appendToTerminal('Device is offline or not found. Please check your connection.', 'error');
 
                 // Set UI state to disconnected
                 if (typeof handleDeviceDisconnected === 'function') {
@@ -37,7 +36,7 @@ async function runADBcommand(command, retries = 1) {
                 continue;
             }
 
-            appendToTerminal(error.toString(), 'error');
+            if (!silent) appendToTerminal(error.toString(), 'error');
             throw error;
         }
     }
