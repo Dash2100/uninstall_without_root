@@ -23,9 +23,17 @@ async function getScrcpyPath() {
         }
     }
     const base = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', 'resources');
+    
     if (os.platform() === 'win32') {
-        return path.join(base, 'scrcpy', 'scrcpy.exe');
+        return path.join(base, 'scrcpy', 'win-x64', 'scrcpy.exe');
     }
+    if (os.platform() === 'darwin') {
+        return path.join(base, 'scrcpy', 'mac-arm64', 'scrcpy');
+    }
+    if (os.platform() === 'linux') {
+        return path.join(base, 'scrcpy', 'linux-x64', 'scrcpy');
+    }
+    // Fallback or error
     return path.join(base, 'scrcpy', 'scrcpy');
 }
 

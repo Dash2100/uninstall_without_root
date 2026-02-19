@@ -16,9 +16,19 @@ function getBuiltinAdbPath() {
     const platform = os.platform();
     const arch = os.arch();
     const base = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', 'resources');
-    if (platform === 'darwin') return path.join(base, 'adb', `mac-${arch}`, 'adb');
-    if (platform === 'win32') return path.join(base, 'adb', 'win-x64', 'adb.exe');
-    if (platform === 'linux') return path.join(base, 'adb', `linux-${arch}`, 'adb');
+
+    if (platform === 'win32') {
+        return path.join(base, 'adb', 'win-x64', 'adb.exe');
+    }
+    if (platform === 'darwin') {
+        // macOS usually on arm64 (M1/M2) or x64. The structure shows mac-arm64.  
+        // If running on Intel mac, this might fail if mac-x64 is not present.
+        // Assuming current structure supports mac-arm64.
+        return path.join(base, 'adb', 'mac-arm64', 'adb');
+    }
+    if (platform === 'linux') {
+        return path.join(base, 'adb', 'linux-x64', 'adb');
+    }
     throw new Error(`Unsupported platform: ${platform} ${arch}`);
 }
 
