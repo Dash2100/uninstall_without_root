@@ -6,53 +6,82 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
+    "build:css": "node node_modules/tailwindcss/lib/cli.js -i src/style/tailwind-input.css -o src/style/tailwind.min.css --minify",
+    "prebuild": "npm run build:css",
     "build": "electron-builder",
+    "prebuild:mac": "npm run build:css",
     "build:mac": "electron-builder --mac",
+    "prebuild:win": "npm run build:css",
     "build:win": "electron-builder --win",
+    "prebuild:linux": "npm run build:css",
     "build:linux": "electron-builder --linux"
   },
   "build": {
     "appId": "com.dash2100.uninstaller",
     "productName": "Android APP Uninstaller",
+    "asar": true,
     "files": [
-      "**/*",
+      "app.js",
+      "main/**/*",
+      "src/**/*",
+      "node_modules/**/*",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!**/node_modules/*.d.ts",
       "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
-    ],
-    "extraResources": [
-      {
-        "from": "resources/",
-        "to": ""
-      }
+      "!src/style/tailwind-input.css"
     ],
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
         "dmg"
       ],
-      "darkModeSupport": true
+      "darkModeSupport": true,
+      "extraResources": [
+        {
+          "from": "resources/adb/helper.dex",
+          "to": "adb/helper.dex"
+        },
+        {
+          "from": "resources/adb/mac-arm64/",
+          "to": "adb/mac-arm64/",
+          "filter": ["!source.properties"]
+        }
+      ]
     },
     "win": {
       "target": [
         "nsis"
       ],
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "extraResources": [
+        {
+          "from": "resources/adb/helper.dex",
+          "to": "adb/helper.dex"
+        },
+        {
+          "from": "resources/adb/win-x64/",
+          "to": "adb/win-x64/",
+          "filter": ["!source.properties"]
+        },
+        {
+          "from": "resources/scrcpy/",
+          "to": "scrcpy/"
+        }
+      ]
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "extraResources": [
+        {
+          "from": "resources/adb/helper.dex",
+          "to": "adb/helper.dex"
+        }
+      ]
     },
     "directories": {
       "output": "dist"
@@ -60,10 +89,10 @@
   },
   "devDependencies": {
     "electron": "^40.4.1",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "tailwindcss": "^3.4.0"
   },
   "dependencies": {
-    "bonjour": "^3.5.1",
-    "qrcode-terminal": "^0.12.0"
+    "bonjour": "^3.5.1"
   }
 }
