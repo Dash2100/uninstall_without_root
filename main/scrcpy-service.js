@@ -24,17 +24,25 @@ async function getScrcpyPath() {
     }
     const base = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', 'resources');
     
+    let builtinPath;
     if (os.platform() === 'win32') {
-        return path.join(base, 'scrcpy', 'win-x64', 'scrcpy.exe');
+        builtinPath = path.join(base, 'scrcpy', 'win-x64', 'scrcpy.exe');
+    } else if (os.platform() === 'darwin') {
+        builtinPath = path.join(base, 'scrcpy', 'mac-arm64', 'scrcpy');
+    } else if (os.platform() === 'linux') {
+        builtinPath = path.join(base, 'scrcpy', 'linux-x64', 'scrcpy');
+    } else {
+        builtinPath = path.join(base, 'scrcpy', 'scrcpy');
     }
-    if (os.platform() === 'darwin') {
-        return path.join(base, 'scrcpy', 'mac-arm64', 'scrcpy');
+
+    if (os.platform() !== 'win32') {
+        try {
+            fs.chmodSync(builtinPath, 0o755);
+        } catch (e) {
+            // Ignore if we can't chmod
+        }
     }
-    if (os.platform() === 'linux') {
-        return path.join(base, 'scrcpy', 'linux-x64', 'scrcpy');
-    }
-    // Fallback or error
-    return path.join(base, 'scrcpy', 'scrcpy');
+    return builtinPath;
 }
 
 function killScrcpy() {
@@ -133,6 +141,32 @@ function registerIPC() {
 
     ipcMain.handle('is-scrcpy-running', () => {
         return scrcpyProcess !== null;
+    });
+
+    ipcMain.handle('get-scrcpy-info', async () => {
+        const config = await readConfig();
+        const scrcpyPath = await getScrcpyPath();
+        const isCustom = config.custom_scrcpy_path && config.custom_scrcpy_path === scrcpyPath;
+
+        const testResult = await new Promise((resolve) => {
+            const { exec } = require('child_process');
+            exec(`"${scrcpyPath}" --version`, { timeout: 5000 }, (err, out) => {
+                if (err) {
+                    resolve({ success: false, error: err.message });
+                } else {
+                    const versionMatch = out.match(/scrcpy (\d+\.\d+[\.\d]*)/);
+                    const version = versionMatch ? versionMatch[1] : '未知版本';
+                    resolve({ success: true, version });
+                }
+            });
+        });
+
+        return {
+            path: scrcpyPath,
+            isCustom,
+            version: testResult.success ? testResult.version : '未知',
+            error: testResult.error
+        };
     });
 }
 

@@ -7,6 +7,7 @@ const adbService = require('./main/adb-service');
 const windowManager = require('./main/window');
 const fileService = require('./main/file-service');
 const scrcpyService = require('./main/scrcpy-service');
+const downloadService = require('./main/download-service');
 
 // Register all IPC handlers
 config.registerIPC();
@@ -14,6 +15,7 @@ adbService.registerIPC();
 windowManager.registerIPC();
 fileService.registerIPC();
 scrcpyService.registerIPC();
+downloadService.registerIPC();
 
 // App lifecycle
 app.whenReady().then(async () => {

@@ -11,9 +11,11 @@ const settingsEls = {
     adbInfo: document.getElementById('settings-adb-info'),
     adbSelect: document.getElementById('settings-adb-select'),
     adbReset: document.getElementById('settings-adb-reset'),
+    adbDownload: document.getElementById('settings-adb-download'),
     scrcpyInfo: document.getElementById('settings-scrcpy-info'),
     scrcpySelect: document.getElementById('settings-scrcpy-select'),
     scrcpyReset: document.getElementById('settings-scrcpy-reset'),
+    scrcpyDownload: document.getElementById('settings-scrcpy-download'),
 };
 
 // Load configuration and update UI
@@ -242,17 +244,11 @@ async function resetToBuiltinAdb() {
 // Load Scrcpy information
 async function loadScrcpyInfo() {
     try {
-        const config = await window.getConfig();
-        const scrcpyPath = config.custom_scrcpy_path;
-        if (scrcpyPath) {
-            const exists = await window.checkFileExists(scrcpyPath);
-            if (exists) {
-                settingsEls.scrcpyInfo.textContent = `自訂版本 - ${truncateFilePath(scrcpyPath, 30)}`;
-            } else {
-                settingsEls.scrcpyInfo.textContent = '自訂路徑無效（檔案不存在）';
-            }
+        const scrcpyInfo = await window.getScrcpyInfo();
+        if (scrcpyInfo.isCustom) {
+            settingsEls.scrcpyInfo.textContent = `自訂版本 ${scrcpyInfo.version} - ${truncateFilePath(scrcpyInfo.path, 30)}`;
         } else {
-            settingsEls.scrcpyInfo.textContent = '使用內建版本';
+            settingsEls.scrcpyInfo.textContent = `內建版本 ${scrcpyInfo.version}`;
         }
     } catch (error) {
         console.error('Error loading scrcpy info:', error);
@@ -315,6 +311,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ADB event listeners
+    if (settingsEls.adbDownload) {
+        settingsEls.adbDownload.addEventListener('click', async () => {
+            const btn = settingsEls.adbDownload;
+            btn.loading = true;
+            settingsEls.adbInfo.textContent = '正在下載 ADB 最新版...';
+            const res = await window.downloadAdb();
+            btn.loading = false;
+            if (res.success) {
+                showSnackAlert('ADB 下載並設定成功！');
+                await loadAdbInfo();
+                try {
+                    await window.restartAdbTracking();
+                } catch (e) {
+                    console.error('Error restarting ADB tracking:', e);
+                }
+            } else {
+                showSnackAlert('ADB 下載失敗：' + res.error);
+                loadAdbInfo();
+            }
+        });
+    }
+
     if (settingsEls.adbSelect) {
         settingsEls.adbSelect.addEventListener('click', selectAdbFile);
     }
@@ -332,6 +350,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Scrcpy event listeners
+    if (settingsEls.scrcpyDownload) {
+        settingsEls.scrcpyDownload.addEventListener('click', async () => {
+            const btn = settingsEls.scrcpyDownload;
+            btn.loading = true;
+            settingsEls.scrcpyInfo.textContent = '正在下載 Scrcpy 最新版...';
+            const res = await window.downloadScrcpy();
+            btn.loading = false;
+            if (res.success) {
+                showSnackAlert('Scrcpy 下載並設定成功！');
+                await loadScrcpyInfo();
+            } else {
+                showSnackAlert('Scrcpy 下載失敗：' + res.error);
+                loadScrcpyInfo();
+            }
+        });
+    }
+
     if (settingsEls.scrcpySelect) {
         settingsEls.scrcpySelect.addEventListener('click', selectScrcpyFile);
     }

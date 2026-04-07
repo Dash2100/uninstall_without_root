@@ -21,6 +21,9 @@ window.closeTerminalWindow = () => ipcRenderer.invoke('close-terminal-window');
 window.startScrcpy = (serial) => ipcRenderer.invoke('start-scrcpy', serial);
 window.stopScrcpy = () => ipcRenderer.invoke('stop-scrcpy');
 window.isScrcpyRunning = () => ipcRenderer.invoke('is-scrcpy-running');
+window.getScrcpyInfo = () => ipcRenderer.invoke('get-scrcpy-info');
+window.downloadAdb = () => ipcRenderer.invoke('download-adb');
+window.downloadScrcpy = () => ipcRenderer.invoke('download-scrcpy');
 
 // USB Device Change Monitoring
 window.addEventListener('DOMContentLoaded', () => {

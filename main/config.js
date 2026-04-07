@@ -53,6 +53,14 @@ async function readConfig() {
     }
 }
 
+async function updateConfig(key, val) {
+    console.log('[Config] updateConfig:', key, val);
+    const cfg = await readConfig();
+    cfg[key] = val;
+    await fs.promises.writeFile(configPath, JSON.stringify(cfg, null, 2));
+    return cfg;
+}
+
 function registerIPC() {
     ipcMain.handle('get-config', () => {
         console.log('[Config] get-config');
@@ -60,12 +68,7 @@ function registerIPC() {
     });
 
     ipcMain.handle('set-config', async (_e, key, val) => {
-        console.log('[Config] set-config:', key, val);
-        const cfg = await readConfig();
-        cfg[key] = val;
-        await fs.promises.writeFile(configPath, JSON.stringify(cfg, null, 2));
-        console.log('[Config] config updated');
-        return cfg;
+        return updateConfig(key, val);
     });
 
     ipcMain.handle('reset-config', () => {
@@ -78,4 +81,4 @@ function registerIPC() {
     });
 }
 
-module.exports = { readConfig, resetConfig, configPath, userData, registerIPC };
+module.exports = { readConfig, resetConfig, updateConfig, configPath, userData, registerIPC };
