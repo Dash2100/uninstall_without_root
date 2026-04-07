@@ -26,17 +26,21 @@ const defaultConfig = {
     custom_scrcpy_path: null
 };
 
+let configCache = null;
+
 async function resetConfig() {
     console.log('[Config] resetConfig: writing default config to:', configPath);
     await fs.promises.mkdir(path.dirname(configPath), { recursive: true });
     await fs.promises.writeFile(configPath, JSON.stringify(defaultConfig, null, 2));
     console.log('[Config] default config written');
     getDefaultExtractPath();
-    return defaultConfig;
+    configCache = { ...defaultConfig };
+    return configCache;
 }
 
 async function readConfig() {
-    console.log('[Config] readConfig: reading config from:', configPath);
+    if (configCache) return configCache;
+    console.log('[Config] readConfig: reading config from disk:', configPath);
     try {
         await fs.promises.access(configPath);
     } catch {
@@ -46,7 +50,9 @@ async function readConfig() {
     try {
         const data = await fs.promises.readFile(configPath, 'utf-8');
         console.log('[Config] config data read');
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        configCache = { ...defaultConfig, ...parsed }; // merge with defaults in case of missing keys
+        return configCache;
     } catch (err) {
         console.log('[Config] error parsing config, resetting');
         return resetConfig();
@@ -57,6 +63,7 @@ async function updateConfig(key, val) {
     console.log('[Config] updateConfig:', key, val);
     const cfg = await readConfig();
     cfg[key] = val;
+    configCache = cfg;
     await fs.promises.writeFile(configPath, JSON.stringify(cfg, null, 2));
     return cfg;
 }

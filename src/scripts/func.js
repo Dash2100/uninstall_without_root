@@ -44,10 +44,12 @@ let currentSort = 'name';   // 'name', 'package', 'status'
 
 // UI Helpers
 function toggleConnectionIcon(connected, loading = false) {
-    els.iconConnected.classList.toggle('hidden', !connected || loading);
-    els.iconDisconnected.classList.toggle('hidden', connected || loading);
+    els.iconConnected.classList.toggle('hidden', !connected);
+    els.iconDisconnected.classList.toggle('hidden', connected);
+    
+    // We never show the iconLoading anymore to prevent double loading animations
     if (els.iconLoading) {
-        els.iconLoading.classList.toggle('hidden', !loading);
+        els.iconLoading.classList.add('hidden');
     }
 }
 

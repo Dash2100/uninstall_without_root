@@ -21,7 +21,7 @@ function createWindow() {
         autoHideMenuBar: true,
         show: false,
         backgroundColor: '#0f0f0f',
-        title: '解除安裝原廠應用程式免ROOT',
+        title: 'Android Debug Bridge Helper',
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false

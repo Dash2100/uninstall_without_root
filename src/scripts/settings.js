@@ -121,21 +121,7 @@ settingsEls.chAPKPath.addEventListener('click', async () => {
     }
 });
 
-// Reset settings
-settingsEls.resetButton.addEventListener('click', () => {
-    showQuestionDialog({
-        title: '確定要重置設定?',
-        description: '所有設定將會恢復為預設值',
-        acceptText: '清除',
-        denyText: '取消',
-        onAccept: () => {
-            window.resetConfig().then(() => {
-                loadConfig();
-                showSnackAlert('設定已重置為預設值');
-            });
-        },
-    });
-});
+// End of selecting folder
 
 settingsEls.openAPKPath.addEventListener('click', async () => {
     try {
@@ -345,6 +331,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 acceptText: '確定',
                 denyText: '取消',
                 onAccept: resetToBuiltinAdb,
+            });
+        });
+    }
+
+    // Reset all settings
+    if (settingsEls.resetButton) {
+        settingsEls.resetButton.addEventListener('click', () => {
+            showQuestionDialog({
+                title: '重置所有設定',
+                description: '確定要將所有設定（包含外觀、儲存路徑、ADB/Scrcpy 版本）恢復為預設值嗎？',
+                acceptText: '確定重置',
+                denyText: '取消',
+                onAccept: async () => {
+                    await window.resetConfig();
+                    await loadConfig();
+                    await loadAdbInfo();
+                    await loadScrcpyInfo();
+                    applyColorScheme(settingsEls.colorPicker.value);
+                    showSnackAlert('所有設定已恢復為預設值');
+                    try {
+                        await window.restartAdbTracking();
+                    } catch (e) {
+                        console.error('Error restarting ADB tracking:', e);
+                    }
+                }
             });
         });
     }

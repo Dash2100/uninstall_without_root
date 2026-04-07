@@ -56,7 +56,7 @@ function confirmWarning() {
 }
 
 function handleConnectionClick() {
-    if (isConnected) {
+    if (isConnected || isConnecting) {
         showDisconnectDialog(false);
     } else {
         manuallyDisconnected = false;
@@ -69,12 +69,13 @@ function showDisconnectDialog(openWirelessAfter = false) {
     const confirmBtn = document.getElementById('confirm-disconnect-btn');
 
     if (openWirelessAfter) {
-        description.textContent = '目前已連接到設備，是否要斷開現有連接並開始無線連接？';
+        description.textContent = '目前正在連接或已連接到設備，是否要斷開並開始無線連接？';
         confirmBtn.onclick = () => confirmDisconnectAndWireless();
     } else {
-        description.textContent = '目前已連接到設備，是否要斷開現有連接？';
+        description.textContent = '目前正在連接或已連接到設備，是否要斷開連接？';
         confirmBtn.onclick = () => confirmDisconnect();
     }
+
     els.dialogDisconnectConfirm.open = true;
 }
 
